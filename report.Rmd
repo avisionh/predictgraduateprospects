@@ -1,0 +1,135 @@
+---
+title: "Predicting Degree Classification"
+author: "Avision Ho"
+date: "17 February 2018"
+output: 
+  html_document:
+    number_sections: false
+    theme: journal
+    highlight: haddock
+    code_folding: hide
+    fig_caption: true
+    toc: true
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+# Load in the necessary packages
+library(tidyverse)
+library(rvest)
+library(pander)
+library(rmarkdown)
+library(caret)
+library(fitdistrplus)
+library(runjags)
+library(coda)
+
+# Load in functions
+source('0.1 - functions.R')
+source('0.2 - mcmcFunctions.R')
+
+# Turn off scientific notation
+options(scipen = 999)
+```
+# Executive Summary
+
+# Recommendations
+
+***
+
+# Section 1: Introduction
+
+## Motivation
+(@) The purpose of this paper is to investigate the use of Bayesian statistics for forecasting the degree classifcation obtained for *first-degree students* studying full-time.[^1]
+
+[^1]: *First-degree students* are defined as students taking their first undergraduate degree or professional qualification.
+
+(@) We then seek to compare our outputs of applying a Bayesian multi-linear regression against a frequentist multi-linear regression using *k-fold cross-validation*. 
+
+## Data
+(@) The data used in this project comes from the Higher Educations Standards Agency's (HESA) 2016/17 Statistical First Release (SFR247) and the Complete University Guide's 2016 university rankings table.
+
+(@) In particular, the following datasets are used from the SFR247:
+    + [2018 Graduate Prospects](https://www.thecompleteuniversityguide.co.uk/league-tables/rankings?v=wide&y=2018)
+    + [2017 Student-Staff Ratios, Academic Services Spend, Good Honours, Facility Spend] (https://www.thecompleteuniversityguide.co.uk/league-tables/rankings?v=wide&y=2017)
+    + [Subject studied](https://www.hesa.ac.uk/data-and-analysis/students/table-19#note)
+    + [Region from](https://www.hesa.ac.uk/data-and-analysis/sfr247/figure-6)
+    + [Postgraduate/Undergraduate figures](https://www.hesa.ac.uk/data-and-analysis/students/table-2)
+    + [Sex](https://www.hesa.ac.uk/data-and-analysis/students/table-1)
+    + [Size of full-time-equivalent (FTE) population](https://www.hesa.ac.uk/data-and-analysis/students/table-2)
+    + [Under-represented group size](https://www.hesa.ac.uk/data-and-analysis/ukpis/widening-participation/table-t1)
+
+(@) We will investigate the use of these data sources as potential *predictors* for the degree classification achieved by full-time students.
+
+## Caveats
+
+## Reproducible Analytical Pipeline (RAP)
+(@) This paper adopts RAP principles to ensure ease of reproducibility of analysis.
+
+(@) The underlying principle here is the belief that analysis should be reproducible, so that any analyst can take the code used here, and generate the same outputs with minimal manual engineering.
+
+(@) This ensures transparency and accountability of analysis as part of a wider framework of good quality-assurance and more effective knowledge management. Additionally, it allows the automation of publications such as SFRs within governments, which significantly reduces production time of publications, and ensuring more consistent quality.[^2]
+
+(@) For an amusing video that brings the benefits of RAP to life, see this Youtube clip [here](https://www.youtube.com/watch?v=s3JldKoA0zw). :)
+
+(@) Particular practices adopted to ensure alignment with RAP principles are:
+    - **RProjects** | Creating a fixed R environment to work within and share, so that no computer-specific file directory is required. 
+    - **Lock-down version of packages** | Packages used have their versions locked down, so when major updates to packages are applied, these will not affect our results.
+    - **Modular coding** | Breaking down our code into modules based along the lines of data loading, data manipulation, data exploration, frequentist multi-linear regression and Bayesian multi-linear regression.
+    - **Set random seed** | Specifying the random seed R uses to generate regression outputs so that we can obtain the same results.
+    - **Version control** | Git is used to manage different versions of this analysis project, enabling dial-back to historical copies before a major change was made, and to enable collaborative working.
+    - **Database Extracts** | When data for analysis is taken from a live feed to an underlying database such as SQL, a copy of the data at that instance is made and saved within the *RProject* so that the record of the data when the analysis was performed is collected and used to reproduce results.[^3]
+   
+[^2]: For more information on RAP, see this government blog [post](https://dataingovernment.blog.gov.uk/2017/03/27/reproducible-analytical-pipeline/).  
+[^3]: We do not have a live link to an underlying database in this project, but this practice is included here for reference.
+    
+```{r Prepare the data, echo = FALSE, include = FALSE}
+source('1.1 - dataLoad.R')
+source('1.2 - dataWrangle.R')
+```
+
+# Section 2: Data Exploration
+
+## Glossary of Terms
+
+## Notes
+(@) The code shown within the HTML document is not the complete code used for this project. Instead, only the most interesting code will be displayed within the document. To see the complete code underlying this analysis, please refer to the *.rmd* file and *.R* scripts within the RProject.
+
+(@) Within the code scripts, the following naming conventions are used:
+    - R scripts | camelCase
+    - Datasets | Prefixed with *data_*
+    - User-created functions | Prefixed with *ucf_* 
+    - Variables | camelCase
+    - Plot objects directly for report | Prefixed with *rpt_*
+    - String directly for report | Prefixed with *txt_*
+
+(@) The theme for this HTML document is *journal*. A list of alternative themes already included within the **rmarkdown** package can be found [here](https://rmarkdown.rstudio.com/html_document_format.html). For further themes to use, download the **prettydoc** package which gives you more [themes](https://cran.r-project.org/web/packages/prettydoc/vignettes/architect.html) to choose from.
+
+(@) The code highlighting for this HTML document is *haddock*. A further list of options can be found [here](https://eranraviv.com/syntax-highlighting-style-in-rmarkdown/).
+
+(@) The packages used in this analysis are:
+  + **tidyverse** | Used for data import, manipulation, and plotting.
+  + **rvest** | For scraping information from the web.
+  + **pander** | Pretty outputting of dataframes within *rmarkdown*.
+  + **rmarkdown** | Generate HTML report within RStudio session.
+  + **caret** | General-purpose package to perform machine-learning, including *multi-linear regression* and *k-fold cross-validation*.
+  + **gvlma** | Tests linear model assumptions.
+  + **fitdistrplus** | Powerful distribution-plotting of data, enabling the selection of the best-fitting common distribution to your data.
+  + **runjags** | Facilitates Bayesian analysis as well as doing so efficiently via parallel processing.
+  + **coda** | Performs Markov-Chain Monte Carlo diagnostic checks for Bayesian analysis.
+
+## Credits
+(@) The following people have influenced this report:
+  + **Richard Morey (Cardiff University)** | Bayesian statistics
+  + **Adam Robinson** | RProjects, modular coding
+  + **Zachary Waller** | Git
+  + **Calum Staff** | RAP
+  + **David Goody and Salman Kasim** | Web-scraping
+  + **Chris Thom** | apply functions > loops
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+sessionInfo()
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
