@@ -49,15 +49,16 @@ options(scipen = 999)
 ## Data
 (@) The data used in this project comes from the Higher Educations Standards Agency's (HESA) 2016/17 Statistical First Release (SFR247) and the Complete University Guide's 2016 university rankings table.
 
-(@) In particular, the following datasets are used from the SFR247:
+(@) In particular, the following datasets are used:
     + [2018 Graduate Prospects](https://www.thecompleteuniversityguide.co.uk/league-tables/rankings?v=wide&y=2018)
     + [2017 Student-Staff Ratios, Academic Services Spend, Good Honours, Facility Spend](https://www.thecompleteuniversityguide.co.uk/league-tables/rankings?v=wide&y=2017)
-    + [Subject studied](https://www.hesa.ac.uk/data-and-analysis/students/table-19#note)
-    + [Region from](https://www.hesa.ac.uk/data-and-analysis/students/table-1.csv)
-    + [Postgraduate/Undergraduate figures](https://www.hesa.ac.uk/data-and-analysis/students/table-1.csv)
-    + [Sex](https://www.hesa.ac.uk/data-and-analysis/students/table-1.csv)
-    + [Size of full-time population](https://www.hesa.ac.uk/data-and-analysis/students/table-1.csv)
-    + [Under-represented group size](https://www.hesa.ac.uk/data-and-analysis/ukpis/widening-participation/table-t1)
+    + [2017 Degree Classification](https://www.hesa.ac.uk/data-and-analysis/students/table-16.csv)
+    + [2017Subject studied](https://www.hesa.ac.uk/data-and-analysis/students/table-19#note)
+    + [2017 Region from](https://www.hesa.ac.uk/data-and-analysis/students/table-1.csv)
+    + [2017 Postgraduate/Undergraduate figures](https://www.hesa.ac.uk/data-and-analysis/students/table-1.csv)
+    + [2017 Sex](https://www.hesa.ac.uk/data-and-analysis/students/table-1.csv)
+    + [2017Size of full-time population](https://www.hesa.ac.uk/data-and-analysis/students/table-1.csv)
+    + [2017 Under-represented group size](https://www.hesa.ac.uk/data-and-analysis/ukpis/widening-participation/table-t1)
 
 (@) We will investigate the use of these data sources as potential *predictors* for the graduate prospects of university students.
     + Aligning with the [GDS Ethics Framework](https://www.gov.uk/government/publications/data-science-ethical-framework), we will include *sex* in our variables to measure correlations with other predictors in the model, and if there is a high correlation, we will remove those predictors from our model. This is because *sex* is a protected characteristic, and therefore we should refrain from including it nor any potential proxies for it into our model. The risk of including it in our model is that if the outputs are used for decision-making, then one member of the sex may be unfairly disadvantaged. 

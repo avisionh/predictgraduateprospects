@@ -114,8 +114,41 @@ temp_region <- func_cleanAdminTable(x = data_list[[1]], filter_sexdomicile = "Do
 # Qualifiers Table
 # ----------------
 # DESC: Cleans the Qualifiers table, data_list[[2]], to obtain
-#       Pass Fail Ratio field.
+#       Pass Fail Ratio field for first-degree students.
+#       May not be for first-degree full-time students.
+# Non-English universities
+temp_1 <- data_list[[2]] %>% 
+          filter(`HE provider` != "Total" &
+                   `Country of HE provider` != "All" & `Country of HE provider` != "England" &
+                   `Qualification/Classification marker` == "First degree classification")
+# English universities
+temp_2 <- data_list[[2]] %>% 
+          filter(`HE provider` != "Total" &
+                   `Country of HE provider` == "England" & `Region of HE provider` != "All" &
+                   `Qualification/Classification marker` == "First degree classification")
+# Union temp dataframes together
+temp_qualifiers <- temp_1 %>% 
+                    rbind(x = temp_2) %>% 
+                    spread(key = `Level of qualification/Degree classification`,
+                           value = `Student count`) %>% 
+                    mutate(`Pass Fail Ratio` = 
+                             ifelse((`Lower second class honours` + `Third class honours/Pass` + `Unclassified`) == 0,
+                                    NA, (`First class honours` + `Upper second class honours`) /
+                                      (`Lower second class honours` + `Third class honours/Pass` + `Unclassified`))) %>% 
+                    dplyr::select(c(`UKPRN`, `HE provider`,
+                                    `Country of HE provider`, `Region of HE provider`, `Pass Fail Ratio`))
 
+# --------------
+# Subjects Table
+# --------------
+# DESC: Cleans the Subjects table, data_list[[3]], to obtain
+#       STEM proportion field.
+#       May not be for first-degree full-time students.
+# Vector with STEM titles and '+' in between each element
+# Need to add backticks to each element of initial vector
+name_science <- paste(grep(pattern = "medicine|science|tech", x = names(data_list[[3]]),
+                            ignore.case = TRUE, value  = TRUE), collapse = " + ")
+temp_subjects <- data_list[[3]] %>% 
+                  mutate(`STEM` = name_science)
 
-
-rm(name_cols, name_gradPros)
+rm(url, name_cols, name_gradPros, temp_1, temp_2)
