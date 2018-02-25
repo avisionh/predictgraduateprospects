@@ -51,17 +51,19 @@ options(scipen = 999)
 
 (@) In particular, the following datasets are used from the SFR247:
     + [2018 Graduate Prospects](https://www.thecompleteuniversityguide.co.uk/league-tables/rankings?v=wide&y=2018)
-    + [2017 Student-Staff Ratios, Academic Services Spend, Good Honours, Facility Spend] (https://www.thecompleteuniversityguide.co.uk/league-tables/rankings?v=wide&y=2017)
+    + [2017 Student-Staff Ratios, Academic Services Spend, Good Honours, Facility Spend](https://www.thecompleteuniversityguide.co.uk/league-tables/rankings?v=wide&y=2017)
     + [Subject studied](https://www.hesa.ac.uk/data-and-analysis/students/table-19#note)
-    + [Region from](https://www.hesa.ac.uk/data-and-analysis/sfr247/figure-6)
-    + [Postgraduate/Undergraduate figures](https://www.hesa.ac.uk/data-and-analysis/students/table-2)
-    + [Sex](https://www.hesa.ac.uk/data-and-analysis/students/table-1)
-    + [Size of full-time-equivalent (FTE) population](https://www.hesa.ac.uk/data-and-analysis/students/table-2)
+    + [Region from](https://www.hesa.ac.uk/data-and-analysis/students/table-1.csv)
+    + [Postgraduate/Undergraduate figures](https://www.hesa.ac.uk/data-and-analysis/students/table-1.csv)
+    + [Sex](https://www.hesa.ac.uk/data-and-analysis/students/table-1.csv)
+    + [Size of full-time population](https://www.hesa.ac.uk/data-and-analysis/students/table-1.csv)
     + [Under-represented group size](https://www.hesa.ac.uk/data-and-analysis/ukpis/widening-participation/table-t1)
 
-(@) We will investigate the use of these data sources as potential *predictors* for the degree classification achieved by full-time students.
+(@) We will investigate the use of these data sources as potential *predictors* for the graduate prospects of university students.
+    + Aligning with the [GDS Ethics Framework](https://www.gov.uk/government/publications/data-science-ethical-framework), we will include *sex* in our variables to measure correlations with other predictors in the model, and if there is a high correlation, we will remove those predictors from our model. This is because *sex* is a protected characteristic, and therefore we should refrain from including it nor any potential proxies for it into our model. The risk of including it in our model is that if the outputs are used for decision-making, then one member of the sex may be unfairly disadvantaged. 
 
 ## Caveats
+(@) As we will remove *sex* and other highly-correlated variables with *sex* from our model, then the predictive accuracy of our model may not be optimal. This to ensure we meet [GDS Ethics Framework](https://www.gov.uk/government/publications/data-science-ethical-framework) standards.
 
 ## Reproducible Analytical Pipeline (RAP)
 (@) This paper adopts RAP principles to ensure ease of reproducibility of analysis.
@@ -124,7 +126,8 @@ source('1.2 - dataWrangle.R')
   + **Adam Robinson** | RProjects, modular coding
   + **Zachary Waller** | Git
   + **Calum Staff** | RAP
-  + **David Goody and Salman Kasim** | Web-scraping
+  + **David Goody** | Fuzzy-matching 
+  + **Salman Kasim** | Web-scraping
   + **Chris Thom** | apply functions > loops
 
 ```{r pressure, echo=FALSE}
