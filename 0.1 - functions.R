@@ -1,15 +1,15 @@
-#-------------#
+# ----------- #
 ## Functions ##
-#-------------#
+# ----------- #
 
-# ----------------------------------------
+# ----------------------------------------------------------------
 # Desc: Houses all user-created functions.
-# Naming convention: Prefixed with 'func_'.
+# Naming convention: User-created functions prefixed with 'func_'.
 # Credit: None
 # Script Dependencies: None
-# Packages Used: tidyverse, rvest
+# Packages Used: tidyverse, rvest, tm, SnowballC
 # Notes: None
-# ----------------------------------------
+# ----------------------------------------------------------------
 
 # --------------------
 # Webscrape HTML table
@@ -84,4 +84,34 @@ func_cleanAdminTable <- function(x,
   x <- x1 %>% 
         rbind(x = x2)
   return(x)
+}
+
+# ----------
+# Text Clean
+# ----------
+# DESC: Cleans text data by following the steps:
+#         1. Convert to lower-case
+#         2. Remove numbers
+#         3. Remove English common stopwords
+#         4. Remove punctuation
+#         5. Eliminate extra white spaces
+#         6. Stems words
+# ARGUMEMTS:
+  # 1. 'col' (vector) | Dataframe column of text data type to clean
+func_textClean <- function(col){
+  # Convert column into a Corpus object to apply tm functions on there
+  x <- Corpus(VectorSource(x = col)) %>% 
+        tm_map(content_transformer(tolower)) %>% 
+        tm_map(removeNumbers) %>% 
+        tm_map(removeWords, stopwords("english")) %>% 
+        tm_map(removePunctuation) %>% 
+        tm_map(stripWhitespace) %>% 
+        tm_map(stemDocument) %>% 
+        # Remove additional stopwords of "The University of" to get 
+        # HESA SFR uni names in line with Complete University's Guide
+        tm_map(removeWords, c("The University of"))
+  # Convert Corpus to dataframe
+  # Note: https://stackoverflow.com/questions/33193152/unable-to-convert-a-corpus-to-data-frame-in-r/33193705
+  x <- data.frame(Name = sapply(X = x, FUN = as.character), stringsAsFactors = FALSE)
+  return(x)  
 }

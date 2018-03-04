@@ -1,15 +1,15 @@
-#-------------#
+# ----------- #
 ## Data Load ##
-#-------------#
+# ----------- #
 
-# -------------------------------------------------------
+# --------------------------------------------------------------------
 # Desc: Loads flat .csv data files in.
-# Naming convention: Prefixed with 'data_'.
+# Naming convention: Data prefixed with 'data_'.
 # Credit: HESA Statistical First Release (SFR247) 2016/17 
 # Script Dependencies: None
 # Packages Used: tidyverse, rvest(implicit for user-created function)
 # Notes: None
-# -------------------------------------------------------
+# -------------------------------------------------------------------
 
 # Put these dataframes into a list object to work more easily with them
 # and delete the dataframes.

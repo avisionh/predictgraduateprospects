@@ -16,6 +16,8 @@ output:
 knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 # Load in the necessary packages
 library(tidyverse)
+library(tm)
+library(SnowballC)
 library(rvest)
 library(pander)
 library(rmarkdown)
@@ -40,31 +42,71 @@ options(scipen = 999)
 # Section 1: Introduction
 
 ## Motivation
-(@) The purpose of this paper is to investigate the use of Bayesian statistics for forecasting the degree classifcation obtained for *first-degree students* studying full-time.[^1]
+(@) The purpose of this paper is to investigate the use of **Bayesian statistics** for forecasting the graduate prospects of *first-degree students* studying full-time.[^1]
 
 [^1]: *First-degree students* are defined as students taking their first undergraduate degree or professional qualification.
 
-(@) We then seek to compare our outputs of applying a Bayesian multi-linear regression against a frequentist multi-linear regression using *k-fold cross-validation*. 
+(@) We will compare our outputs of applying a Bayesian **multi-linear regression** against a frequentist multi-linear regression using **k-fold cross-validation**. 
+
+## Caveats
+(@) As we will remove *sex* and other highly-correlated variables with *sex* from our model, then the predictive accuracy of our model may not be optimal. This to ensure we meet [GDS Ethics Framework](https://www.gov.uk/government/publications/data-science-ethical-framework) standards.
+
+(@) There are four forms of *"The Open University"*, one for each UK region, in our *data_qualifiers* dataframe. Will need to check if this is the case for our other data frames.
+
+(@) As we have chosen only one **fuzzy-matching** algorithm, and have not benchmarked this against other possible algorithms, then our data matching between HESA SFR and Complete University's Guide data may not be optimal. To improve our data matching and consequently, our model performances, we should explore alternative **fuzzy-matching** algorithms. 
 
 ## Data
-(@) The data used in this project comes from the Higher Educations Standards Agency's (HESA) 2016/17 Statistical First Release (SFR247) and the Complete University Guide's 2016 university rankings table.
+
+### Data: Sources
+(@) The data used in this project comes from the Higher Educations Standards Agency's (HESA) Statistical First Release (SFR247) and the Complete University Guide's university rankings table.
 
 (@) In particular, the following datasets are used:
     + [2018 Graduate Prospects](https://www.thecompleteuniversityguide.co.uk/league-tables/rankings?v=wide&y=2018)
     + [2017 Student-Staff Ratios, Academic Services Spend, Good Honours, Facility Spend](https://www.thecompleteuniversityguide.co.uk/league-tables/rankings?v=wide&y=2017)
     + [2017 Degree Classification](https://www.hesa.ac.uk/data-and-analysis/students/table-16.csv)
-    + [2017Subject studied](https://www.hesa.ac.uk/data-and-analysis/students/table-19#note)
+    + [2017 Subject studied](https://www.hesa.ac.uk/data-and-analysis/students/table-19#note)
     + [2017 Region from](https://www.hesa.ac.uk/data-and-analysis/students/table-1.csv)
     + [2017 Postgraduate/Undergraduate figures](https://www.hesa.ac.uk/data-and-analysis/students/table-1.csv)
     + [2017 Sex](https://www.hesa.ac.uk/data-and-analysis/students/table-1.csv)
-    + [2017Size of full-time population](https://www.hesa.ac.uk/data-and-analysis/students/table-1.csv)
+    + [2017 Size of full-time population](https://www.hesa.ac.uk/data-and-analysis/students/table-1.csv)
     + [2017 Under-represented group size](https://www.hesa.ac.uk/data-and-analysis/ukpis/widening-participation/table-t1)
 
 (@) We will investigate the use of these data sources as potential *predictors* for the graduate prospects of university students.
     + Aligning with the [GDS Ethics Framework](https://www.gov.uk/government/publications/data-science-ethical-framework), we will include *sex* in our variables to measure correlations with other predictors in the model, and if there is a high correlation, we will remove those predictors from our model. This is because *sex* is a protected characteristic, and therefore we should refrain from including it nor any potential proxies for it into our model. The risk of including it in our model is that if the outputs are used for decision-making, then one member of the sex may be unfairly disadvantaged. 
 
-## Caveats
-(@) As we will remove *sex* and other highly-correlated variables with *sex* from our model, then the predictive accuracy of our model may not be optimal. This to ensure we meet [GDS Ethics Framework](https://www.gov.uk/government/publications/data-science-ethical-framework) standards.
+### Data: Cleaning 
+(@) Whilst our HESA SFR data has a unique identifier field, *UKPRN*, that we can use to join disparate HESA SFR data together, our Complete University's Guide web-scraped HTML table does not have such a similar unique identifer field. Instead, it's unique identifer field is  *Name*, which is the universtiy's name and is of string data type.
+
+(@) Our HESA SFR data also has a similar field, *HE provider*, which allows us to join the HESA SFR with the Complete University's Guide data together. However, given that these fields are of string data type, then we will need to do some data cleaning first as there is a lot of noise in string/text data. The steps we will take to cleaning text data are:
+  + Convert text to lower case
+  + Remove numbers and punctuation
+  + Remove English stopwords *e.g. "the", "is", "of"*
+  + Remove white spaces
+  + Stem text *e.g. remove the "ed" from "changed"*
+
+(@) Once we have cleaned our string columns so they can be matched more accurately, we will then need to apply **fuzzy-matching** to join the HESA SFR data to our Complete University's Guide data. This is because the two sources may call the same university different names. 
+  + *Example: HESA SFR has "The University of Cambridge" whilst the same university is just "Cambridge" in the Complete University's Guide data.*
+  
+(@) Possible fuzzy-matching techniques/algorithms are:
+  + **Jaro-distance** | 
+  + **Jaro-Winkler distance** |
+  + **Jaccard distance** |
+  + **Cosine distance** |
+  + **Longest common substring** |
+  
+```{r (HIDDEN) Prepare the data, echo = FALSE, include = FALSE}
+source('1.1 - dataLoad.R')
+source('1.2 - dataWrangle.R')
+```
+
+***
+
+# Section 2: Data Exploration
+
+# Next Steps
+(@) For text data cleaning, would like to investigate the *quanteda* package which is said to be more powerful, faster, and efficient than existing text analysis packages such as *tm*.
+
+# Appendix
 
 ## Reproducible Analytical Pipeline (RAP)
 (@) This paper adopts RAP principles to ensure ease of reproducibility of analysis.
@@ -77,7 +119,7 @@ options(scipen = 999)
 
 (@) Particular practices adopted to ensure alignment with RAP principles are:
     - **RProjects** | Creating a fixed R environment to work within and share, so that no computer-specific file directory is required. 
-    - **Lock-down version of packages** | Packages used have their versions locked down, so when major updates to packages are applied, these will not affect our results.
+    - **Lock-down version of packages** | Packages used have their versions locked down, so when major updates to packages are applied, these will not affect our results. This is acheived by the package, *packrat*.
     - **Modular coding** | Breaking down our code into modules based along the lines of data loading, data manipulation, data exploration, frequentist multi-linear regression and Bayesian multi-linear regression.
     - **Set random seed** | Specifying the random seed R uses to generate regression outputs so that we can obtain the same results.
     - **Version control** | Git is used to manage different versions of this analysis project, enabling dial-back to historical copies before a major change was made, and to enable collaborative working.
@@ -85,13 +127,6 @@ options(scipen = 999)
    
 [^2]: For more information on RAP, see this government blog [post](https://dataingovernment.blog.gov.uk/2017/03/27/reproducible-analytical-pipeline/).  
 [^3]: We do not have a live link to an underlying database in this project, but this practice is included here for reference.
-    
-```{r Prepare the data, echo = FALSE, include = FALSE}
-source('1.1 - dataLoad.R')
-source('1.2 - dataWrangle.R')
-```
-
-# Section 2: Data Exploration
 
 ## Glossary of Terms
 
@@ -101,7 +136,9 @@ source('1.2 - dataWrangle.R')
 (@) Within the code scripts, the following naming conventions are used:
     - R scripts | camelCase
     - Datasets | Prefixed with *data_*
-    - User-created functions | Prefixed with *ucf_* 
+    - User-created functions | Prefixed with *func_* 
+    - Temporary objects | Prefixed with *temp_*
+    - Vectors of names | Prefixed with *name_*
     - Variables | camelCase
     - Plot objects directly for report | Prefixed with *rpt_*
     - String directly for report | Prefixed with *txt_*
@@ -111,11 +148,15 @@ source('1.2 - dataWrangle.R')
 (@) The code highlighting for this HTML document is *haddock*. A further list of options can be found [here](https://eranraviv.com/syntax-highlighting-style-in-rmarkdown/).
 
 (@) The packages used in this analysis are:
-  + **tidyverse** | Used for data import, manipulation, and plotting.
-  + **rvest** | For scraping information from the web.
+  + **packrat** | Locking-down versions of packages.
+  + **tidyverse** | Data import, manipulation, and plotting.
+  + **tm** | Cleaning text data.
+  + **SnowballC** | Stems text
+  + **stringdist** | Fuzzymatching text data.
+  + **rvest** | Scraping information from the web.
   + **pander** | Pretty outputting of dataframes within *rmarkdown*.
   + **rmarkdown** | Generate HTML report within RStudio session.
-  + **caret** | General-purpose package to perform machine-learning, including *multi-linear regression* and *k-fold cross-validation*.
+  + **caret** | General-purpose package to perform machine-learning, including **multi-linear regression** and **k-fold cross-validation**.
   + **gvlma** | Tests linear model assumptions.
   + **fitdistrplus** | Powerful distribution-plotting of data, enabling the selection of the best-fitting common distribution to your data.
   + **runjags** | Facilitates Bayesian analysis as well as doing so efficiently via parallel processing.
@@ -124,15 +165,15 @@ source('1.2 - dataWrangle.R')
 ## Credits
 (@) The following people have influenced this report:
   + **Richard Morey (Cardiff University)** | Bayesian statistics
-  + **Adam Robinson** | RProjects, modular coding
-  + **Zachary Waller** | Git
-  + **Calum Staff** | RAP
-  + **David Goody** | Fuzzy-matching 
-  + **Salman Kasim** | Web-scraping
-  + **Chris Thom** | apply functions > loops
+  + **Adam Robinson (DfE)** | RProjects, modular coding, packrat
+  + **Zachary Waller (DfE)** | Git
+  + **Callum Staff (DfE)** | RAP
+  + **David Goody (DfE)** | Fuzzy-matching 
+  + **Salman Kasim (DfE)** | Web-scraping
+  + **Chris Thom (DfE)** | apply functions > loops
+  + **Michelle Clements (BEIS)** | Text data cleaning
 
 ```{r pressure, echo=FALSE}
-plot(pressure)
 sessionInfo()
 ```
 

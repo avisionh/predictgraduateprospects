@@ -1,10 +1,10 @@
-#----------------#
+# -------------- #
 ## Data Wrangle ##
-#----------------#
+# -------------- #
 
 # --------------------------------------------------------------------
 # Desc: Manipulates dataframes for analysis.
-# Naming convention: N/A
+# Naming convention: Temporary objects prefixed with 'temp_'
 # Credit: None
 # Script Dependencies: '1.1 - dataLoad.R'
 # Packages Used: tidyverse
@@ -12,7 +12,7 @@
   # 1. 2017 Admin (First degree full-time, postgrad full-time, sex, region)
   # 2. 2017 Qualifiers
   # 3. 2017 Subject
-  # 4. 2017 Under-represented groups
+  # 4. 2017 Under-represented groups (State and Private Schools)
   # 5. 2018 Graduate prospects
   # 6. 2017 University Guide (Student-staff ratio, academic services spend, 
   #         good honours, and facility spend
@@ -30,7 +30,7 @@ name_gradPros <- paste(grep(pattern = "^Graduate", x = names(data_list[[5]]), va
 data_list[[5]] <- data_list[[5]][, c("University Name", name_gradPros)]
 
 # Clean
-data_list[[5]] <- func_cleanHTMLTable(x = data_list[[5]], colNames = c("Name", "Graduate Prospects"))
+temp_gradProspects <- func_cleanHTMLTable(x = data_list[[5]], colNames = c("Name", "Graduate Prospects"))
 
 # ---------------------------------
 # University Guide: Other Data 2017
@@ -58,7 +58,7 @@ data_list[[6]] <- data_list[[6]][, 2:15]
 name_cols <- c("Rank", "Rank Change", "Name", "Entry Standards", "Student Satisfaction", "Research Quality",
                   "Research Intensity", "Graduate Prospects", "Stu-Staff Ratio", "Acad Services Speeds",
                   "Facilities Spend", "Good Honours", "Degree Completion", "Overall Score")
-data_list[[6]] <- func_cleanHTMLTable(x = data_list[[6]], colNames = name_cols)
+temp_otherUniTableData <- func_cleanHTMLTable(x = data_list[[6]], colNames = name_cols)
 
 # -------------------------------------------------
 # Admin Table: First-degree Full-time Student Count
@@ -94,9 +94,9 @@ temp_postgradDegree <- func_cleanAdminTable(x = data_list[[1]],
 #       First-degree (FD) Full-time (FT) female, male, other count field.
 temp_sex <- func_cleanAdminTable(x = data_list[[1]], filter_sexdomicile = "Sex") %>% 
           spread(key = `Sex/Domicile`, value = `Student count`) %>% 
-          mutate(`Male Female Ratio` = ifelse(`Female` == 0, NA,`Male`/`Female`)) %>% 
+          mutate(`Male Female ratio` = ifelse(`Female` == 0, NA,`Male`/`Female`)) %>% 
           dplyr::select(c(`UKPRN`, `HE provider`, `Country of HE provider`,
-                          `Region of HE provider`, `Male Female Ratio`))
+                          `Region of HE provider`, `Male Female ratio`))
 
 # --------------------------------------------------------
 # Admin Table: First-degree Full-time Region Student Count
@@ -105,10 +105,10 @@ temp_sex <- func_cleanAdminTable(x = data_list[[1]], filter_sexdomicile = "Sex")
 #       First-degree (FD) Full-time (FT) female, male, other count field.
 temp_region <- func_cleanAdminTable(x = data_list[[1]], filter_sexdomicile = "Domicile") %>% 
           spread(key = `Sex/Domicile`, value = `Student count`) %>% 
-          mutate(`EU to non-EU Ratio` = ifelse(`Non-European Union` == 0, NA,
+          mutate(`EU to non-EU ratio` = ifelse(`Non-European Union` == 0, NA,
                                                (`UK` + `Other European Union`)/`Non-European Union`)) %>% 
           dplyr::select(c(`UKPRN`, `HE provider`,
-                          `Country of HE provider`, `Region of HE provider`, `EU to non-EU Ratio`))
+                          `Country of HE provider`, `Region of HE provider`, `EU to non-EU ratio`))
 
 # ----------------
 # Qualifiers Table
@@ -131,24 +131,43 @@ temp_qualifiers <- temp_1 %>%
                     rbind(x = temp_2) %>% 
                     spread(key = `Level of qualification/Degree classification`,
                            value = `Student count`) %>% 
-                    mutate(`Pass Fail Ratio` = 
+                    mutate(`Pass Fail ratio` = 
                              ifelse((`Lower second class honours` + `Third class honours/Pass` + `Unclassified`) == 0,
                                     NA, (`First class honours` + `Upper second class honours`) /
                                       (`Lower second class honours` + `Third class honours/Pass` + `Unclassified`))) %>% 
                     dplyr::select(c(`UKPRN`, `HE provider`,
-                                    `Country of HE provider`, `Region of HE provider`, `Pass Fail Ratio`))
+                                    `Country of HE provider`, `Region of HE provider`, `Pass Fail ratio`))
 
 # --------------
 # Subjects Table
 # --------------
 # DESC: Cleans the Subjects table, data_list[[3]], to obtain
-#       STEM proportion field.
+#       STEM Non-STEM ratio field.
 #       May not be for first-degree full-time students.
-# Vector with STEM titles and '+' in between each element
-# Need to add backticks to each element of initial vector
-name_science <- paste(grep(pattern = "medicine|science|tech", x = names(data_list[[3]]),
-                            ignore.case = TRUE, value  = TRUE), collapse = " + ")
-temp_subjects <- data_list[[3]] %>% 
-                  mutate(`STEM` = name_science)
+# Vector with STEM titles
+name_science <- grep(pattern = "medicine|science|tech", x = names(data_list[[3]]),
+                            ignore.case = TRUE, value  = TRUE)
+# Compute STEM and Non-STEM ratio
+temp_subjects <- data_list[[3]] %>%
+                  mutate(`STEM Total` = rowSums(data_list[[3]][, name_science], na.rm = TRUE),
+                         `Non-STEM Total` = `Subject area total` - `STEM Total`,
+                         `STEM non-STEM ratio` = ifelse(`Non-STEM Total` == 0, NA, 
+                                                        `STEM Total` / `Non-STEM Total`)) %>% 
+                  filter(`HE provider` != "Total") %>% 
+                  dplyr::select(c(`UKPRN`, `HE provider`, `STEM non-STEM ratio`))
 
-rm(url, name_cols, name_gradPros, temp_1, temp_2)
+
+# ------------------------------
+# State vs. Private School Table
+# ------------------------------
+# DESC: Cleans the Subjects table, data_list[[4]], to obtain
+#       State Private ratio field.
+#       May not be for first-degree full-time students.
+name_total <- grep(pattern = "total", x = data_list[[4]]$`HE provider`, ignore.case = TRUE, value = TRUE)
+temp_underRepGroup <- data_list[[4]] %>% 
+                        dplyr::select(c(`UKPRN`, `HE provider`, `Percentage from state schools or colleges`)) %>% 
+                        filter(!(`HE provider` %in% name_total)) %>% 
+                        rename(`State Private ratio` = `Percentage from state schools or colleges`)
+
+# Remove unwanted objects
+rm(url, name_cols, name_gradPros, name_science, name_total, temp_1, temp_2)
