@@ -18,6 +18,7 @@ knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 library(tidyverse)
 library(tm)
 library(SnowballC)
+library(stringdist)
 library(rvest)
 library(pander)
 library(rmarkdown)
@@ -42,7 +43,7 @@ options(scipen = 999)
 # Section 1: Introduction
 
 ## Motivation
-(@) The purpose of this paper is to investigate the use of **Bayesian statistics** for forecasting the graduate prospects of *first-degree students* studying full-time.[^1]
+(@) The purpose of this paper is to investigate the use of **Bayesian statistics** for forecasting the graduate prospects of *first-degree students* studying full-time.[^1] `r toString(emo::ji("flex"))`
 
 [^1]: *First-degree students* are defined as students taking their first undergraduate degree or professional qualification.
 
@@ -94,9 +95,23 @@ options(scipen = 999)
   + **Cosine distance** |
   + **Longest common substring** |
   
+(@) The particular fuzzy-matching used will be **Longest Common Subsequence**. The reasons for choosing this are outlined below:
+
+```{r (SHOW) LCS Pros and Cons, echo = FALSE, results = "asis"}
+# Table output here looks good in any format
+table <- "
+| Works well for       | Struggles with     |
+|----------------------|--------------------|
+| + Missing words      | - Ordering         | 
+| + Typos              | - Generic wording  | 
+"
+cat(table)
+```
+
 ```{r (HIDDEN) Prepare the data, echo = FALSE, include = FALSE}
 source('1.1 - dataLoad.R')
 source('1.2 - dataWrangle.R')
+source('1.3 - dataConsolidation.R')
 ```
 
 ***

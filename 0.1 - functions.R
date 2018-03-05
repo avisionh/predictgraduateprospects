@@ -96,7 +96,7 @@ func_cleanAdminTable <- function(x,
 #         4. Remove punctuation
 #         5. Eliminate extra white spaces
 #         6. Stems words
-# ARGUMEMTS:
+# ARGUMENTS:
   # 1. 'col' (vector) | Dataframe column of text data type to clean
 func_textClean <- function(col){
   # Convert column into a Corpus object to apply tm functions on there
