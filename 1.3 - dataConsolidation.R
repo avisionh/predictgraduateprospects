@@ -7,8 +7,9 @@
 # Naming convention: N/A
 # Credit: None
 # Script Dependencies: 
-  # 1. '1.1 - dataLoad.R'
-  # 2. '1.2 - dataWrangle.R'
+  # 1. '0.1 - functions.R'
+  # 2. '1.1 - dataLoad.R'
+  # 3. '1.2 - dataWrangle.R'
 # Packages Used: 
   # 1. tidyverse
   # 2. tm (implicit for user-created function)
@@ -72,7 +73,7 @@ data_master <- temp[, c("hesa_name", "CUG_name")] %>%
                 dplyr::select(c(`UKPRN`:`State Private ratio`, `Rank`:`Graduate Prospects 2018`)) %>% 
                 # Reorder columns
                 dplyr::select(c(`UKPRN`:`Research Intensity`, `Stu-Staff Ratio`:`Overall Score`,
-                                `Graduate Prospects 2017`, `Graduate Prospects 2018`))  
+                                `Graduate Prospects 2017`, `Graduate Prospects 2018`))
 
 # Remove unwanted objects
 rm(temp_firstDegree, temp_postgradDegree, temp_sex, temp_region, temp_qualifiers, temp_subjects, temp_underRepGroup,

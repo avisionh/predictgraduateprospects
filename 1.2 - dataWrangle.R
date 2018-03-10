@@ -30,7 +30,8 @@ name_gradPros <- paste(grep(pattern = "^Graduate", x = names(data_list[[5]]), va
 data_list[[5]] <- data_list[[5]][, c("University Name", name_gradPros)]
 
 # Clean
-temp_gradProspects <- func_cleanHTMLTable(x = data_list[[5]], colNames = c("Name", "Graduate Prospects"))
+temp_gradProspects <- func_cleanHTMLTable(x = data_list[[5]], colNames = c("Name", "Graduate Prospects")) 
+temp_gradProspects$`Graduate Prospects` <- as.double(x = temp_gradProspects$`Graduate Prospects`)
 
 # ---------------------------------
 # University Guide: Other Data 2017
@@ -59,7 +60,9 @@ name_cols <- c("Rank", "Rank Change", "Name", "Entry Standards", "Student Satisf
                   "Research Intensity", "Graduate Prospects", "Stu-Staff Ratio", "Acad Services Speeds",
                   "Facilities Spend", "Good Honours", "Degree Completion", "Overall Score")
 temp_otherUniTableData <- func_cleanHTMLTable(x = data_list[[6]], colNames = name_cols)
-
+name_cols <- name_cols[!name_cols %in% c("Rank", "Name")]
+temp_otherUniTableData[,name_cols] <- temp_otherUniTableData[,name_cols] %>% 
+                                        sapply(FUN = as.double)
 # -------------------------------------------------
 # Admin Table: First-degree Full-time Student Count
 # -------------------------------------------------

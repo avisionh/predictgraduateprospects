@@ -15,6 +15,7 @@
 # Webscrape HTML table
 #---------------------
 # DESC: Pulls data from HTML tables on websites via webscraping.
+# CREDIT: None
 # ARGUMENTS:
   # 1. 'url' | the web-address you're pulling HTML table from.
 func_readHTMLTable <- function(url) {
@@ -29,7 +30,8 @@ func_readHTMLTable <- function(url) {
 # ----------------
 # Clean HTML table
 #-----------------
-# DESC: Cleans HTML tables into readable format
+# DESC: Cleans HTML tables into readable format.
+# CREDIT: None
 # ARGUMENTS:
   # 1. 'x' (dataframe) | HTML table to clean.
   # 2. 'colNames' (vector) | Names to replace existing columns.
@@ -61,6 +63,7 @@ func_cleanHTMLTable <- function(x, colNames) {
 #       but for univeristies in England, their regions is 'All' and somewhere else,
 #       meaning need to separate univeristies in England from those not in England,
 #       and append.
+# CREDIT: None
 # ARGUMENTS:
   # 1. 'x' (dataframe) | Dataframe to clean.
   # 2. 'filter_lvlstudy (vector) | Filter to apply to `Level of study` column.
@@ -96,6 +99,7 @@ func_cleanAdminTable <- function(x,
 #         4. Remove punctuation
 #         5. Eliminate extra white spaces
 #         6. Stems words
+# CREDIT: None
 # ARGUMENTS:
   # 1. 'col' (vector) | Dataframe column of text data type to clean
 func_textClean <- function(col){
@@ -114,4 +118,42 @@ func_textClean <- function(col){
   # Note: https://stackoverflow.com/questions/33193152/unable-to-convert-a-corpus-to-data-frame-in-r/33193705
   x <- data.frame(Name = sapply(X = x, FUN = as.character), stringsAsFactors = FALSE)
   return(x)  
+}
+
+# -------
+# NA Plot
+# -------
+# DESC: Visualises missing data within a dataframe.
+# CREDIT: https://www.r-bloggers.com/ggplot-your-missing-data-2/
+# ARGUMENTS:
+  # 1. 'x' (dataframe) | Dataframe to visualise missing values from.
+func_plotNAs <- function(x) {
+  x %>% 
+    is.na() %>% 
+    reshape2::melt() %>% 
+    ggplot(data = ., mapping = aes(x = `Var2`, y = `Var1`)) +
+      geom_raster(mapping = aes(fill = value)) +
+      scale_fill_grey(name = "", labels = c("Present", "Missing")) +
+      theme_minimal() +
+      theme(axis.text.x = element_text(angle = 45, vjust = 0.5), plot.title = element_text(hjust = 0.5)) +
+      labs(title = "Missing Values in Dataset", x = "Variables in dataset", y = "Observation/row index")
+}
+
+# -------
+# Correlation Matrix
+# -------
+# DESC: Helper functions to remove repeated, redundant information in lower-left
+#       or upper-right part of correlation matrix.
+# CREDIT: http://www.sthda.com/english/wiki/ggplot2-quick-correlation-matrix-heatmap-r-software-and-data-visualization
+# ARGUMENTS:
+  # 1. 'cormat' (matrix) | Correlation matrix to visualise.
+# Get lower triangle of the correlation matrix
+func_lowerNA<-function(cormat){
+  cormat[upper.tri(cormat)] <- NA
+  return(cormat)
+}
+# Get upper triangle of the correlation matrix
+func_upperNA <- function(cormat){
+  cormat[lower.tri(cormat)]<- NA
+  return(cormat)
 }

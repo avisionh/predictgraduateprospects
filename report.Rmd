@@ -56,6 +56,11 @@ options(scipen = 999)
 
 (@) As we have chosen only one **fuzzy-matching** algorithm, and have not benchmarked this against other possible algorithms, then our data matching between HESA SFR and Complete University's Guide data may not be optimal. To improve our data matching and consequently, our model performances, we should explore alternative **fuzzy-matching** algorithms. 
 
+(@) Have not performed analysis on all possible independent variables such as *first-degree full-time student count*, *Entry standards*, *Research intensity* etc., so we could meaningfully improve our model fit by including these.
+
+(@) From transforming our dataframes so that they are of *double* datatype, the conversion for *'Acad Services Speeds'* failed, so we generated NAs. Whils this does not affect the analysis as we have not used this data, it is something worth bearing in mind for future analysis.
+
+
 ## Data
 
 ### Data: Sources
@@ -108,18 +113,144 @@ table <- "
 cat(table)
 ```
 
-```{r (HIDDEN) Prepare the data, echo = FALSE, include = FALSE}
+```{r (HIDE) Data Preparation, echo = FALSE, include = FALSE}
 source('1.1 - dataLoad.R')
 source('1.2 - dataWrangle.R')
 source('1.3 - dataConsolidation.R')
+```
+
+(@) In the code below, we will demonstrate how to apply text cleaning and fuzzy-matching. Note however that the code is not representative of the code actually used to clean our dataframes.
+
+```{r (SHOW) Data Preparation, eval = FALSE, echo = TRUE}
+# Clean text data
+x <- Corpus(VectorSource(x = `name`)) %>% 
+        tm_map(content_transformer(tolower)) %>% 
+        tm_map(removeNumbers) %>% 
+        tm_map(removeWords, stopwords("english")) %>% 
+        tm_map(removePunctuation) %>% 
+        tm_map(stripWhitespace) %>% 
+        tm_map(stemDocument) %>% 
+        # Remove additional stopwords of "The University of" to get 
+        # HESA SFR uni names in line with Complete University's Guide
+        tm_map(removeWords, c("The University of"))
+# Convert Corpus to dataframe
+x <- data.frame(Name = sapply(X = x, FUN = as.character), stringsAsFactors = FALSE)
+
+# Fuzzy-matching
+# Create grid of names to match - get all permutations
+temp <- expand.grid(data_hesa$Name, data_CUG$Name) %>% 
+          rename(`hesa_name` = `Var1`, `CUG_name` = `Var2`) %>% 
+          arrange(`hesa_name`)
+# Use Longest Common Subsequence (LCS) algorithm
+temp$dist_lcs <- stringdist(temp$hesa_name, temp$CUG_name, method = "lcs")
+# Rank the LCS distances  smaller the better
+temp <- temp %>%
+          transform(rank_dist_lcs = ave(`dist_lcs`, `hesa_name`,
+                                        FUN = function(x) rank(x, ties.method = "first"))) %>% 
+          # Take only the best rank
+          filter(rank_dist_lcs == 1) %>% 
+          # From visual inspection of matches, any fields with dist_lcs > 8 seem to be wrong,
+          # with exception of LSE
+          filter(dist_lcs <= 8 | `CUG_name` == "london school econom")
+
+# temp dataframe thus acts as lookup table joining
+# data_hesa to data_CUG
+data_master <- temp[, c("hesa_name", "CUG_name")] %>% 
+                left_join(y = data_hesa, by = c("hesa_name" = "Name")) %>% 
+                left_join(y = data_CUG, by = c("CUG_name" = "Name"))
+```
+
+(@) We have now cleaned and joined our separate datasets together. The complete dataframe looks as follows:
+
+```{r (SHOW) Data Prepared, include = TRUE, echo = TRUE}
+glimpse(data_master)
 ```
 
 ***
 
 # Section 2: Data Exploration
 
+## Missing Values
+```{r (HIDE) Missing values text, include = FALSE, echo = FALSE}
+source('2.1 - dataExploration.R')
+```
+
+(@) To obtain an idea of how many missing/NA values we have, we plot for each variable in our cleaned and joined dataset, which observations/row index has an NA value, coloured grey. In the plot below, we see that we have `r toString(txt_missingData[1])` missing data *(`r toString(round(x = temp_propNA, digits = 2))`)* so we `r toString(txt_missingData[2])` need to consider data imputation methods like **bootstrap aggregation** (*bagging*).
+
+```{r (SHOW) Missing Values plot, include = TRUE, echo = TRUE}
+func_plotNAs(data_master)
+```
+
+## Dependent Variable: Graduate Prospects  
+
+```{r (SHOW) Graduate Prospects distribution, include = TRUE, echo = TRUE}
+ggplot(data = data_master, mapping = aes(`Graduate Prospects 2018`)) +
+  geom_histogram(fill = "#E69F00", colour = "#56B4E9", alpha = 0.4) +
+                 labs(title = "Graduate Prospects 2018 Distribution", 
+                      x = "Graduate Prospects 2018", y = "Count") +
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))
+```
+
+```{r (SHOW) Graduate Prospects Relationships, include = TRUE, echo = TRUE}
+
+```
+
+## Independent Variables
+(@) From the plot below, we have the correlation of each independent variable against other independent variables. It is important to ensure that our independent variables are not highly correlated with sex in accordance to the GDS Ethics framework. Moreover, we should also remove highly-correlated independent variables because they will negatively affect our regression.
+
+(@) **From the correlation matrix plot below, we see the following:
+  
+  + Male-Female ratio is not strongly correlated with any other variables.
+  + State Private ratio is fairly correlated with PG FT sutdent count and Pass Fail ratio.
+  + Research Quality is highly correlated with PG FT student count.
+  + Stu-Staff Ratio is fairly correlated with State Private ratio.**
+  
+  Given this, we will drop the *State Private ratio* and *PG FT student count* variables from our regressions. This is because keeping correlated independent variables will make our regression results inaccurate.
+
+```{r (SHOW) Correlation heatmap, include = TRUE, echo = TRUE}
+# Correlation heatmap
+ggplot(data = mat_corr, mapping = aes(x = `Var2`, y = `Var1`, fill = value)) +
+  geom_tile(colour = "white") +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white",
+                       midpoint = 0, limit = c(-1, 1), space = "Lab", name = "Pearson\nCorrelation\nCoefficient") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  labs(title = "IV Correlation Heatmap", x = "Independent Variables", y = "Independent Variables")
+```
+
+# Section 3: Linear Regression
+```{r (HIDE) Frequentist Linear Regression script, include = FALSE, echo = FALSE}
+source('3 - analysisFrequentist.R')
+```
+
+(@) 
+
+```{r (HIDE) Plot regression diagnostics, echo = FALSE, eval = TRUE}
+par(mfrow = c(2, 2))
+plot(model_regFreq$finalModel)
+rpt_ci
+```
+
+```{r (SHOW) Frequentist Linear Regression, echo = TRUE, eval = FALSE}
+# Set random number generator seed to a number to reproduce results
+set.seed(123)
+# Set-up k-fold cross-validation
+trainSet <- trainControl(method = "cv", number = 10)
+# Run linear regression model
+model <- train(form = `Graduate Prospects 2018` ~ .,
+                       data = mat_reg, trControl = trainSet,
+                       method = "lm")
+par(mfrow = c(2,2))
+plot(model)
+```
+
 # Next Steps
 (@) For text data cleaning, would like to investigate the *quanteda* package which is said to be more powerful, faster, and efficient than existing text analysis packages such as *tm*.
+
+(@) We have removed NAs from our datasets so that we can carry out the Bayesian analysis. With more time, we would like to use data imputation methods so that we do not lose data. 
+
+(@) Use parallel computing methods for running caret. Exmaple can be found in documentation
 
 # Appendix
 
@@ -150,10 +281,12 @@ source('1.3 - dataConsolidation.R')
 
 (@) Within the code scripts, the following naming conventions are used:
     - R scripts | camelCase
-    - Datasets | Prefixed with *data_*
+    - Dataframe objects | Prefixed with *data_*
     - User-created functions | Prefixed with *func_* 
     - Temporary objects | Prefixed with *temp_*
+    - Matrix objects | Prefixed with *mat_*
     - Vectors of names | Prefixed with *name_*
+    - Model objects | Prefixed with *model_*
     - Variables | camelCase
     - Plot objects directly for report | Prefixed with *rpt_*
     - String directly for report | Prefixed with *txt_*
