@@ -219,7 +219,7 @@ ggplot(data = mat_corr, mapping = aes(x = `Var2`, y = `Var1`, fill = value)) +
   labs(title = "IV Correlation Heatmap", x = "Independent Variables", y = "Independent Variables")
 ```
 
-# Section 3: Linear Regression
+# Section 3: Frequentist Multi-Linear Regression
 ```{r (HIDE) Frequentist Linear Regression script, include = FALSE, echo = FALSE}
 source('3 - analysisFrequentist.R')
 ```
@@ -244,6 +244,16 @@ model <- train(form = `Graduate Prospects 2018` ~ .,
 par(mfrow = c(2,2))
 plot(model)
 ```
+
+# Section 4: Bayesian Multi-Linear Regression
+```{r (HIDE) Bayesian Linear Regressions script, include = FALSE, echo = FALSE}
+source("4 - analysisBayesian.R")
+```
+
+## Formulating Priors
+
+(@)
+
 
 # Next Steps
 (@) For text data cleaning, would like to investigate the *quanteda* package which is said to be more powerful, faster, and efficient than existing text analysis packages such as *tm*.
@@ -288,7 +298,7 @@ plot(model)
     - Vectors of names | Prefixed with *name_*
     - Model objects | Prefixed with *model_*
     - Variables | camelCase
-    - Plot objects directly for report | Prefixed with *rpt_*
+    - Other objects for report | Prefixed with *rpt_*
     - String directly for report | Prefixed with *txt_*
 
 (@) The theme for this HTML document is *journal*. A list of alternative themes already included within the **rmarkdown** package can be found [here](https://rmarkdown.rstudio.com/html_document_format.html). For further themes to use, download the **prettydoc** package which gives you more [themes](https://cran.r-project.org/web/packages/prettydoc/vignettes/architect.html) to choose from.

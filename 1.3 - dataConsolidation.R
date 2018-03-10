@@ -77,5 +77,6 @@ data_master <- temp[, c("hesa_name", "CUG_name")] %>%
 
 # Remove unwanted objects
 rm(temp_firstDegree, temp_postgradDegree, temp_sex, temp_region, temp_qualifiers, temp_subjects, temp_underRepGroup,
-   temp_otherUniTableData, temp_gradProspects, temp_uniName, temp_name, temp_hesa, temp_CUG, temp)
+   temp_otherUniTableData, temp_gradProspects, temp_uniName, temp_name, temp_hesa, temp_CUG, temp,
+   data_CUG, data_hesa)
               

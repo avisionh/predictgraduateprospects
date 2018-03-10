@@ -28,3 +28,5 @@ model_regFreq <- train(form = `Graduate Prospects 2018` ~ .,
 rpt_ci <- confint(object = model_regFreq$finalModel, level = 0.95)
 rpt_ci <- round(x = rpt_ci[,c("2.5 %","97.5 %")], digits = 2)
 row.names(rpt_ci) <- gsub(pattern = "\\\\|`", replacement = "", x = row.names(rpt_ci))
+
+rm(trainSet)

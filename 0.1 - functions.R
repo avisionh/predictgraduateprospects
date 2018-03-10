@@ -7,7 +7,7 @@
 # Naming convention: User-created functions prefixed with 'func_'.
 # Credit: None
 # Script Dependencies: None
-# Packages Used: tidyverse, rvest, tm, SnowballC
+# Packages Used: tidyverse, rvest, tm, SnowballC, caret, runjags
 # Notes: None
 # ----------------------------------------------------------------
 
@@ -139,9 +139,9 @@ func_plotNAs <- function(x) {
       labs(title = "Missing Values in Dataset", x = "Variables in dataset", y = "Observation/row index")
 }
 
-# -------
+# ------------------
 # Correlation Matrix
-# -------
+# ------------------
 # DESC: Helper functions to remove repeated, redundant information in lower-left
 #       or upper-right part of correlation matrix.
 # CREDIT: http://www.sthda.com/english/wiki/ggplot2-quick-correlation-matrix-heatmap-r-software-and-data-visualization
@@ -156,4 +156,132 @@ func_lowerNA<-function(cormat){
 func_upperNA <- function(cormat){
   cormat[lower.tri(cormat)]<- NA
   return(cormat)
+}
+
+# --------------------
+# Goodness-of-fit Plot
+# --------------------
+# DESC: Plots the following so we can test which distibution best fits DV.
+#       Bundles together the densplotcomp, qqcomp, cdfcomp, and ppcomp functions
+#       from 'fitdistrplus' package.
+# CREDIT: None.
+# ARGUMENTS:
+  # 1. 'dist' (list) | Distribution estimates to plot with.
+  # 2. 'titles' (vector) | Legend label to describe distrubition being plotted.
+func_plotGoF <- function(dist, titles) {
+  denscomp(ft = dist, legendtext = titles)
+  qqcomp(ft = dist, legendtext = titles)
+  cdfcomp(ft = dist, legendtext = titles)
+  ppcomp(ft = dist, legendtext = titles)
+}
+
+# -----------------------
+# Positive Transformation
+# -----------------------
+# DESC: Turns all values in column positive for Bayesian regression.
+# CREDIT: None.
+# ARGUMENTS:
+# 1. 'x' (vector) | Dataframe column to convert values to positive.
+func_transPos <- function(x) {
+  if (min(x) < 0) {
+    x <- x - min(x) + 0.00000001
+  } else {
+    x <- x + 0.00000001
+  }
+  return(x)
+}
+
+# --------------------
+# Bayes Predict Output
+# --------------------
+# DESC: Performs k-fold cross-validation Bayesian 
+# CREDIT: None.
+# NOTE: Function used within 'func_kFoldCV'.
+# ARGUMENTS:
+# 1. 'x' (mcmc) | Matrix of independent variables.
+# 2. 'y' (vector) | Column of dependent variable.
+func_predictBayes <- function(mcmcobject, x) {
+  # Get coefficient outputs and store in a dataframe
+  #coeff <- summary(mcmcobject)$statistics[,1] doesn't work because this is not a recursive(list) object
+  #so can't use $ operator
+  coeff <- summary(mcmcobject)[[1]][,1]
+  coeff <- as.data.frame(coeff)
+  # Do matrix multiplication to get outputs
+  y_pred <- coeff[1,] + x %*% coeff[2:nrow(coeff), ]
+  return(y_pred)
+}
+
+# -----------------------------
+# Calculate RMSE
+# -----------------------------
+# DESC: Calculates the root-mean-squared-error
+# CREDIT: None.
+# NOTE: Function used within 'func_kFoldCV'.
+# ARGUMENTS:
+# 1. 'y' (vector) | Column of DV values.
+# 2. 'y_pred' (vector) | Column of predicted DV values.
+func_calcRMSE <- function(y, y_pred) {
+  sqrt(mean( (y - y_pred)^2 ))
+}
+
+# -----------------------------
+# Bayes k-Fold Cross-Validation
+# -----------------------------
+# DESC: Performs k-fold cross-validation Bayesian 
+# CREDIT: None.
+# NOTE: When doing matrix multiplication, are arbitrarily taking
+#       first element of the mcmc list that will be passed into 'func_predictBayes'
+# ARGUMENTS:
+  # 1. 'x' (matrix) | Matrix of independent variables.
+  # 2. 'y' (vector) | Column of dependent variable.
+  # 3. 'partition' (value) | Proportion of data to split for training set.
+  # 4. 'folds' (value) | Number of folds to perform.
+  # 5. 'parameters' (vector) | Regression parameters for regression.
+
+func_kFoldCV <- function(x, y, partition, folds, parameters, burnin, nChains) {
+  # Create list to store MCMC outputs in.
+  list_mcmc <- list()
+  length(list_mcmc) <- folds
+  # Create list for predicted values. 
+  list_predict <- list()
+  length(list_predict) <- folds
+  # Create list test sets.
+  test_sets <- list()
+  length(test_sets) <- folds
+  test_predictions <- list()
+  length(test_predictions) <- folds
+  # Create vector for RMSEs.
+  vec_RMSE <- c()
+  length(vec_RMSE) <- folds
+  
+  # Workhorse of the function
+  for (i in 1:folds) {
+    # Partiton data into train and test sets.
+    train_set_indices <- createDataPartition(y, p = partition, list = FALSE)
+    train_predictors <- y[train_set_indices]
+    train_set <- x[train_set_indices, ]
+    test_predictions[[i]] <- y[-train_set_indices]
+    test_sets[[i]] <- x[-train_set_indices, ]
+    
+    # Set-up.
+    noRowsIV <- nrow(train_set)
+    noRowsDV <- length(train_predictors)
+    data_reg <- list(x = train_set[1:noRowsIV, ], y = train_predictors[1:noRowsDV])
+    
+    # Run MCMC simulations using parallel computing methods.
+    temp_reg <- run.jags(method = "parallel", model = "regModel.txt", monitor = parameters,
+                         data = data_reg, n.chains = nChains, burnin = burnin, 
+                         summarise = FALSE, plots = FALSE)
+    
+    # Store the MCMC objects.
+    list_mcmc[[i]] <- as.mcmc.list(temp_reg)
+    # Store predicted values from Bayes output.
+    list_predict[[i]] <- func_predictBayes(list_mcmc[[i]][[1]], test_sets[[i]])
+    # Store RMSEs
+    vec_RMSE[i] <- func_calcRMSE(test_predictions[[i]], list_predict[[i]])
+  }
+  
+  # Store mcmc objects, regression prediction, and RMSE values in a list to return.
+  output <- list(list_mcmc, list_predict, vec_RMSE)
+  return(output)
 }

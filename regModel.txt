@@ -1,0 +1,17 @@
+model{
+	for(i in 1:length(y)){   ## regression model for y
+	      mu[i] <- beta0 + inprod(beta[1:6], x[i,1:6])
+	      y[i] ~ dnorm(mu[i],tau)
+	}
+	
+	## Priors
+	## From rpt_dist[[2]]$estimate
+	beta0 ~ dnorm(69.362810, 9.890818)   ## intercept
+	for(j in 1:6) {
+	  beta[j] ~ dnorm(69.362810, 9.890818)
+	}
+
+	sigma ~ dunif(0,100)       ## residual std dev
+	tau <- pow(sigma,-2)       ## convert to precision
+
+}
