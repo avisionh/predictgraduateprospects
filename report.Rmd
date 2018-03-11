@@ -7,7 +7,7 @@ output:
     number_sections: false
     theme: journal
     highlight: haddock
-    code_folding: hide
+    code_folding: show
     fig_caption: true
     toc: true
 ---
@@ -26,6 +26,7 @@ library(caret)
 library(fitdistrplus)
 library(runjags)
 library(coda)
+library(mcmcse)
 
 # Load in functions
 source('0.1 - functions.R')
@@ -41,13 +42,12 @@ options(scipen = 999)
 ***
 
 # Section 1: Introduction
-
 ## Motivation
 (@) The purpose of this paper is to investigate the use of **Bayesian statistics** for forecasting the graduate prospects of *first-degree students* studying full-time.[^1] `r toString(emo::ji("flex"))`
 
 [^1]: *First-degree students* are defined as students taking their first undergraduate degree or professional qualification.
 
-(@) We will compare our outputs of applying a Bayesian **multi-linear regression** against a frequentist multi-linear regression using **k-fold cross-validation**. 
+(@) We will compare our outputs of applying a **frequentist** against a **Bayesian multi-linear regression** using **k-fold cross-validation**. 
 
 ## Caveats
 (@) As we will remove *sex* and other highly-correlated variables with *sex* from our model, then the predictive accuracy of our model may not be optimal. This to ensure we meet [GDS Ethics Framework](https://www.gov.uk/government/publications/data-science-ethical-framework) standards.
@@ -60,13 +60,12 @@ options(scipen = 999)
 
 (@) From transforming our dataframes so that they are of *double* datatype, the conversion for *'Acad Services Speeds'* failed, so we generated NAs. Whils this does not affect the analysis as we have not used this data, it is something worth bearing in mind for future analysis.
 
-
 ## Data
-
 ### Data: Sources
 (@) The data used in this project comes from the Higher Educations Standards Agency's (HESA) Statistical First Release (SFR247) and the Complete University Guide's university rankings table.
 
 (@) In particular, the following datasets are used:
+
     + [2018 Graduate Prospects](https://www.thecompleteuniversityguide.co.uk/league-tables/rankings?v=wide&y=2018)
     + [2017 Student-Staff Ratios, Academic Services Spend, Good Honours, Facility Spend](https://www.thecompleteuniversityguide.co.uk/league-tables/rankings?v=wide&y=2017)
     + [2017 Degree Classification](https://www.hesa.ac.uk/data-and-analysis/students/table-16.csv)
@@ -78,12 +77,19 @@ options(scipen = 999)
     + [2017 Under-represented group size](https://www.hesa.ac.uk/data-and-analysis/ukpis/widening-participation/table-t1)
 
 (@) We will investigate the use of these data sources as potential *predictors* for the graduate prospects of university students.
+
     + Aligning with the [GDS Ethics Framework](https://www.gov.uk/government/publications/data-science-ethical-framework), we will include *sex* in our variables to measure correlations with other predictors in the model, and if there is a high correlation, we will remove those predictors from our model. This is because *sex* is a protected characteristic, and therefore we should refrain from including it nor any potential proxies for it into our model. The risk of including it in our model is that if the outputs are used for decision-making, then one member of the sex may be unfairly disadvantaged. 
 
 ### Data: Cleaning 
+```{r (HIDE) Data Preparation, echo = FALSE, include = FALSE}
+source('1.1 - dataLoad.R')
+source('1.2 - dataWrangle.R')
+source('1.3 - dataConsolidation.R')
+```
 (@) Whilst our HESA SFR data has a unique identifier field, *UKPRN*, that we can use to join disparate HESA SFR data together, our Complete University's Guide web-scraped HTML table does not have such a similar unique identifer field. Instead, it's unique identifer field is  *Name*, which is the universtiy's name and is of string data type.
 
 (@) Our HESA SFR data also has a similar field, *HE provider*, which allows us to join the HESA SFR with the Complete University's Guide data together. However, given that these fields are of string data type, then we will need to do some data cleaning first as there is a lot of noise in string/text data. The steps we will take to cleaning text data are:
+
   + Convert text to lower case
   + Remove numbers and punctuation
   + Remove English stopwords *e.g. "the", "is", "of"*
@@ -94,6 +100,7 @@ options(scipen = 999)
   + *Example: HESA SFR has "The University of Cambridge" whilst the same university is just "Cambridge" in the Complete University's Guide data.*
   
 (@) Possible fuzzy-matching techniques/algorithms are:
+
   + **Jaro-distance** | 
   + **Jaro-Winkler distance** |
   + **Jaccard distance** |
@@ -113,13 +120,8 @@ table <- "
 cat(table)
 ```
 
-```{r (HIDE) Data Preparation, echo = FALSE, include = FALSE}
-source('1.1 - dataLoad.R')
-source('1.2 - dataWrangle.R')
-source('1.3 - dataConsolidation.R')
-```
 
-(@) In the code below, we will demonstrate how to apply text cleaning and fuzzy-matching. Note however that the code is not representative of the code actually used to clean our dataframes.
+(@) In the code below, we demonstrate how to apply text cleaning and fuzzy-matching. Note however that the code is not representative of the code actually used to clean our dataframes. For the actual code, the reader should refer to the underlying R scripts which underpin this report.
 
 ```{r (SHOW) Data Preparation, eval = FALSE, echo = TRUE}
 # Clean text data
@@ -169,19 +171,19 @@ glimpse(data_master)
 ***
 
 # Section 2: Data Exploration
-
-## Missing Values
-```{r (HIDE) Missing values text, include = FALSE, echo = FALSE}
+```{r (HIDE) Data Exploration script, include = FALSE, echo = FALSE}
 source('2.1 - dataExploration.R')
 ```
-
+## Missing Values
 (@) To obtain an idea of how many missing/NA values we have, we plot for each variable in our cleaned and joined dataset, which observations/row index has an NA value, coloured grey. In the plot below, we see that we have `r toString(txt_missingData[1])` missing data *(`r toString(round(x = temp_propNA, digits = 2))`)* so we `r toString(txt_missingData[2])` need to consider data imputation methods like **bootstrap aggregation** (*bagging*).
 
-```{r (SHOW) Missing Values plot, include = TRUE, echo = TRUE}
+```{r (SHOW) Missing values plot, include = TRUE, echo = TRUE}
 func_plotNAs(data_master)
 ```
 
 ## Dependent Variable: Graduate Prospects  
+
+(@) In the plot below, we have the distribution of *Graduate Prospects 2018* scores. We see that it follows a general normal distribution. Given this, we can see that there are values at both tails away from the distribution, which may be candidate outlier observations which should be iinvestigated further to see if they are actually outlier points, and henceforth should be removed from our dataset. This is because the presence of outliers can adversely impact our **linear regression**.
 
 ```{r (SHOW) Graduate Prospects distribution, include = TRUE, echo = TRUE}
 ggplot(data = data_master, mapping = aes(`Graduate Prospects 2018`)) +
@@ -192,25 +194,27 @@ ggplot(data = data_master, mapping = aes(`Graduate Prospects 2018`)) +
   theme(plot.title = element_text(face = "bold", hjust = 0.5))
 ```
 
-```{r (SHOW) Graduate Prospects Relationships, include = TRUE, echo = TRUE}
+(@) In the output below, we have the correlations of each of our independent variables against our dependent variable, *"Graduate Prospects 2018"*. From this, we see that each of our independent variables selected are at least somewhat correlated to *"Graduate Prospects 2018"*, so they can be included in the regression.
 
+```{r (SHOW) Graduate Prospects correlations, include = TRUE, echo = TRUE}
+mat_corrDV
 ```
 
 ## Independent Variables
 (@) From the plot below, we have the correlation of each independent variable against other independent variables. It is important to ensure that our independent variables are not highly correlated with sex in accordance to the GDS Ethics framework. Moreover, we should also remove highly-correlated independent variables because they will negatively affect our regression.
 
-(@) **From the correlation matrix plot below, we see the following:
+(@) From the correlation matrix plot below, we see the following:
   
   + Male-Female ratio is not strongly correlated with any other variables.
   + State Private ratio is fairly correlated with PG FT sutdent count and Pass Fail ratio.
   + Research Quality is highly correlated with PG FT student count.
-  + Stu-Staff Ratio is fairly correlated with State Private ratio.**
+  + Stu-Staff Ratio is fairly correlated with State Private ratio.
   
   Given this, we will drop the *State Private ratio* and *PG FT student count* variables from our regressions. This is because keeping correlated independent variables will make our regression results inaccurate.
 
 ```{r (SHOW) Correlation heatmap, include = TRUE, echo = TRUE}
 # Correlation heatmap
-ggplot(data = mat_corr, mapping = aes(x = `Var2`, y = `Var1`, fill = value)) +
+ggplot(data = mat_corrIV, mapping = aes(x = `Var2`, y = `Var1`, fill = value)) +
   geom_tile(colour = "white") +
   scale_fill_gradient2(low = "blue", high = "red", mid = "white",
                        midpoint = 0, limit = c(-1, 1), space = "Lab", name = "Pearson\nCorrelation\nCoefficient") +
@@ -219,38 +223,195 @@ ggplot(data = mat_corr, mapping = aes(x = `Var2`, y = `Var1`, fill = value)) +
   labs(title = "IV Correlation Heatmap", x = "Independent Variables", y = "Independent Variables")
 ```
 
-# Section 3: Frequentist Multi-Linear Regression
-```{r (HIDE) Frequentist Linear Regression script, include = FALSE, echo = FALSE}
-source('3 - analysisFrequentist.R')
+***
+# Bayesian Stastistics
+## What is it?
+(@) **Bayesian statistics/inference** is a fundamentally different way to view and approach statistical problems/questions. At its simplest, it boils down to **Bayes' Theorem** within probability theory:
+$$ (1)\quad P(A\mid B\,) = {\frac {P(B\mid A)\ P(A\,)}{P(B\,)}} $$
+$$ where\:A\:and\:B\:are\:events\:and\:P(B)\neq 0 $$
+(@) **Bayesian inference** follows what is recognised as rational learning; where we combine observational evidence with pre-existing beliefs to obtain new beliefs. In this way, the role of data in statistics is evidentiary and henceforth we can formulate **Bayesian inference** to be:
+$$ (2)\quad Beliefs\: after\: observation\: =\: Beliefs\: before\: observation\: +\: total\: evidence\: observed$$
+(@) For the purpose of terms used later in this paper, we will rephrase (2) as (3) below:
+$$ (3)\quad Posterior\: beliefs\: \propto\: Prior\: \times\: Likelihood $$
+
+## Frequentist versus Bayesian Statistics
+(@) **Frequentist/classical statistics**, which is widely learnt in education and practiced in industry, is distinct from **Bayesian statistics** on a philosophical level. The two schools of thought view the concept of probability in fundamentally different ways. [^2]
+
+[^2]: One of the main reasons why **frequentist statistics** is the dominant mode of statistical thinking is due to computational power. Before recent advances, it was very difficult to efficiently perform **Bayesian statistics**. Another key reason is centred on a historical, epic, and longstanding [war](http://lesswrong.com/lw/774/a_history_of_bayes_theorem/) between **Frequentist** statisticians (*Ronald Fisher, Jerzy Neyman and Egon Pearson*) and **Bayesian** statisticians (*Thomas Bayes, Pierre-Simon Laplace*), which was won by the former group in the early 20th Century. `r toString(emo::ji("explode"))`
+
+(@) Most **frequentist** methods have a **Bayesian** equivalent, and they both generally lead to broadly similar results. Therefore, one's choice in deciding which of the two approaches to take is based on principle on how one views the problem, and seeks to interpret the answers. We will illustrate this with an example below: [^3]
+
+[^3]: There can be cases where the two approaches lead to substantially different results.
+
+> **Scenario:** You have misplaced your phone somehwere in the house. You thus decide to call your phone so you can use the ringing to direct you to where it is. [^4]
+
+> **Frequentist reasoning** - You hear your phone ringing and have a mental model of your house that helps you identify the area from which the ringing is coming from. Therefore, upon hearing the ringing, you infer the area of your house that you must search to locate your phone.
+
+> **Bayesian reasoning** - You hear your phone ringing. In addition to having a mental model of your house, you also know the locations where you have misplaced your phone in the past. Therefore, you combine the inferences from the ringing and your prior knowledge of where you have misplaced your phone in the past to identify an area you must search to locate your phone.
+
+[^4]: Example taken from [this StackExchange question](https://stats.stackexchange.com/questions/22/bayesian-and-frequentist-reasoning-in-plain-english)
+
+(@) Formally fleshing out this example, the differences between **frequentist** and **Bayesian** statistics is summarised in the table below.
+
+```{r (SHOW) Frequentist vs Bayes table, echo = FALSE, results = "asis"}
+# Table output here looks good in any format
+table <- "
+<center>
+| Frequentist inference      | Bayesian inference     |
+|----------------------|--------------------|
+| - Data are a repeatable random sample, so studies can be reapeated.       | - Data are observed froma realised sample, so studies are fixed.         | 
+| - Underlying parameters being observed remain constant during this repeatable process.              | - Underlying parameters are unknown and desvribed probabilisitcally, so can vary.  | 
+| - Parameters are fixed. | - Data are fixed. |
+</center>
+"
+cat(table)
 ```
 
-(@) 
+(@) This distinction in how parameters and data are viewed between **frequentists** and **Bayesians** is seen in how **confidence intervals** and **credible intervals** are interpreted respectively. 
 
-```{r (HIDE) Plot regression diagnostics, echo = FALSE, eval = TRUE}
+> A frequentist would say that over repeated sampling of 95% confidence intervals, 95% of these confidence intervals have the true parameter lying in them. 
+
+> A Bayesian would say over one 95% credible interval, the probability the parameter of interest will lie within this interval is 95%.
+
+(@) In this way, a **Bayesian** inference lends itself better to interpretation as it is more intuitive, and on a practical level, we typically do not have time/money to collect data repeatedly. [^4]
+
+[^4]: Indeed, the fact that **Bayesian** inference is more intuitive was the subject of discussion in Daniel Kahnemann's best-seller, *Thinking, Fast and Slow*.
+
+## How it works
+
+
+# k-fold Cross validation
+## What is it?
+(@) **Cross-validation** is a technique to evaluate a model's predictive power by partitioning the data into a **training set** to train the model, and a **test set** to evaluate the model's accuracy in making predictions.
+
+(@) **k-fold cross-validation** is a form of **cross-validation** that takes *k* randomly paritioned sub-samples of your data; *k-1* of these sub-samples then act as the **training set** to train your model, with the other sub-sample being used as your **test set** to evaluate your models performance. 
+
+(@) This process is repeated *k* times so that each of your *k* sub-samples are used for training and testing/evaluating your model. The *k* results you generate from running these *k* models are then averaged to produce a single estimation/metric of how accurate your model is.
+
+(@) **k-fold cross-validation** is powerful because it allows you to use all your data for both training and testing purposes. However, it can be computationally expensive.
+
+(@) We will use **k-fold cross-validation** to run our **multi-linear regression** models to ensure our model does not *overfit* our data. By *overfitting*, we mean the model is too good at predicting the outputs, *Graduate Prospects 2018*, from our dataset, and cannot accurately predict the  our output, *Graduate Prospects 2018*, on new data that is not included in our dataset.
+
+***
+
+# Root Mean Square Error (RMSE)
+(@) **Root-mean-square error** is a metric for evaluating the performance of your predictive model. The lower value means that your model is more accurate in producing predictions that are closer to the observed values.
+
+(@) It is the differences between predicted values of your model against the values actually observed. Mathematically, this is formulated by the below equation:
+$$RMSE = \sqrt{\frac{\sum_{i=1}^n\left( \hat{y_i}-y_i \right)^2}{n}}$$
+
+(@) The **RMSE** can be used to compare the performance of difference models to see which one is more accurate in making predictions of an dependent variable. 
+
+(@) However, the **RMSE** is scale-dependent, so it cannot be used to compare models on different sets of data, or on models that are based on the same data but the data for each model have different scales. *e.g. one model may be based on income data, whilst the other model is based on income data that is log-transformed.*
+
+(@) We will use **RMSE** to evaluate the performance of our **frequentist** and **Bayesian multi-linear regression** models to compare which model gives us more accurate predictions.
+
+***
+
+# Section 3: Multi-Linear Regression
+## What is it?
+(@) **Multi-linear regression** is a method to model the relationship a dependent variable, *Graduate Prospects 2018* has with a set of independent variables. The independent variables we will use are:
+
+  + *Male Female ratio*
+  + *EU to non-EU ratio*
+  + *Pass Fail ratio*
+  + *STEM non-STEM ratio*
+  + *Research Quality* 
+  + *Stu-Staff Ratio*
+  
+(@) These independent variables are otherwise known as predictors/explanatory variables because they are used to explain the relationship with the dependent variable, *Graduate Prospects 2018*.
+
+(@) **Multi-linear regression** is *multi/multiple* in the sense that it takes several inpendent variables as inputs to model their relationship with the dependent variable.
+
+(@) **Multi-linear regression** is *linear* in the sense that it assumes there is a linear relationship between the independent variables and the dependent variable.
+
+## Assumptions
+(@) When performing a **multi-linear regression**, it is important to check that the regression model satisfies the following assumptions, otherwise the outputs from the model which describe the relationship the independent variables have with the dependent variables will not be statistically valid.
+
+  + **A1: Linearity** | the relationship between the independent variables to the dependent variable can be modelled by a linearly, meaning as the independent variables change, the dependent variable should change in a linear/constant rate manner.
+  + **A2: Normal Distribution** | the dependent variable or **residuals**, which are the deviations of each observed value from the mean dependent variable, are normally distributed.
+  + **A3: Homoscedasticity** | the **residuals** are **homoscedastic**, meaning the **residual**'s variances are constant across observations.
+  + **A4: Independence** | the **residuals** are independent from each other, meaning that the value of one **residual** should not affect the value of another **residual**.
+  + **A5: No multi-collinearity** | the independent variables should not be correlated with each other.
+
+(@) For **A4: Independence**, it is less imporant to meet this because we are dealing with non-time series data.
+
+(@) Whilst not included as an assumption, the impact extreme observations can have on determing the regression line can be significant, and therefore a robust regression model would remove these observations. 
+
+## Frequentist Multi-Linear Regression
+```{r (HIDE) Frequentist Linear Regression script, include = FALSE, echo = FALSE}
+source('3.1 - analysisFrequentist.R')
+```
+
+(@) We build the **frequentist multi-linear regression** model using **k-fold cross-validation** from the code below.
+```{r (SHOW) Frequentist MLR, echo = TRUE, eval = FALSE}
+# Set-up 10-fold cross-validation
+trainSet <- trainControl(method = "cv", number = 10)
+# Run linear regression model
+model_regFreq <- train(form = `Graduate Prospects 2018` ~ .,
+                       data = mat_reg, trControl = trainSet,
+                       method = "lm")
+```
+
+### Testing regression assumptions
+(@) Before we begin to view the outputs of the **frequentist multi-linear regression** model we created, we need to check that the model meets the regression assumptions. Code for plotting this is below. [^5]
+
+[^5]: For a good webpage on how to interpret regression diagnostic plots, visit the [University of Virginia library's webpage](http://data.library.virginia.edu/diagnostic-plots/).
+
+  + **A1: Linearity** | In the top-left panel, we have the *residuals vs. fitted* values plot. If we find equally spread **residuals** around the horizontal red line, this is a good sign that you have a linear relationship between your independent variables and dependent variable. In this instance, the points/**residuals** are spread weakly equally/randomly around our red-line, so we weakly meet the linearity assumption.
+  
+  + **A2: Normal Distribution** | In the top-right panel, we have the *normal Q-Q* plot. If we find the residuals are lined up well along the straight, diagonal line, then this is a good sign that we have normality of **residuals**. In this instance, our points/**residuals** follow the straight, diagonal line well, so we meet the normality assumption. [^6]
+  
+[^6]: If we did not meet this assumption, we can **Box-Cox** transform our dependent variable to try and make it normally-distributed.
+
+  + **A3: Homoscedasticity** | In the bottom-left panel, we have the *scale-location* plot. If we find equally/randomly spread points around the red, horizontal line, then this is a good sign that we have homoscedasticity of the **residuals**. In this instance, our points/**residuals** are spread-further to the left of the plot, and more concentrated on the right of the plot, causing the red-line to be diagonal rather than horizontal. We do not meet the heteroscedasticity assumption. However, since we are not dealing with time-series data, this is not of significant importance.
+  
+  + **A4: Independence** | This assumption can only be validated at the data collections stage. We believe that observations were collected independent of one another so satisfy this independence assumption.
+  
+  + **A5: Multicollinearity** | In the correlation heatmap plot in *Section 2: Data Exploration - Independent Variables*, we removed *State Prviate ratio* and *PG FT student count* from our set of independent variables because they were correlated with other variables. As such, we meet the no-multi-collinearity assumption.
+ 
+  + **Extreme Points** | In the bottom-right panel, we have the *residual vs leverage* plot. If we find all our observations lying within the red-dotted Cook's distance lines, then this is a good sign that we do not have any extreme points that greatly influence the regression line. In this instance, all our observations are within the inner Cook's distance dotted lines, so we do not have any extreme points.
+  
+(@) Therefore our regression model meets the regression assumptions and our model outputs are be valid.
+```{r (SHOW) Regression diagnostics, echo = TRUE, eval = TRUE}
 par(mfrow = c(2, 2))
 plot(model_regFreq$finalModel)
+```
+
+### Interpreting regression model outputs
+(@) In the below output, we have the outputs of our model.
+  + Coefficient significance | From the **p-values** associated with each of our independent variables, with the exception of *Research Quality*, *Male Female ratio*, and *EU to non-EU ratio*, all our other independent variables are not statistically significant at 5% signifiance level.
+  + Model significance | From the **p-value** associated with our regression model, we see that our model is statistically significant at the 5% signficance level.
+```{r (SHOW) Frequentist regression summary, echo = TRUE, eval = TRUE}
+summary(model_regFreq)
+```
+
+### Regression model accuracy
+(@) The *RMSE* of our **frequentist multi-linear regression** model is `r toString(txt_rmseFreq)`. As we have scaled our data to be in the range [0,1], then this is a `r toString(txt_rmse_conc[1])` value, hence our model is `r toString(txt_rmse_conc[2])` in predicting *Graduate Prospects 2018*.
+```{r (SHOW) RMSE, echo = TRUE, eval = FALSE}
+ModelMetrics::rmse(actual = model_regFreq$finalModel$model$.outcome, 
+                   predicted = model_regFreq$finalModel$fitted.values)
+```
+
+### Confidence interval
+(@) In the output below, we have the 95% **confidence interval** for each of our independent variables. These values can be interpreted as follows; *if we were to take 100 samples, 95 of those samples' independent variables parameters' values will lie within the region bounded by 2.5% and 97.5%, on average.*
+```{r (SHOW) CI code, echo = TRUE, eval = FALSE}
+confint(object = model_regFreq$finalModel, level = 0.95)
+```
+```{r (HIDE) CI , echo = FALSE, eval = TRUE}
 rpt_ci
 ```
 
-```{r (SHOW) Frequentist Linear Regression, echo = TRUE, eval = FALSE}
-# Set random number generator seed to a number to reproduce results
-set.seed(123)
-# Set-up k-fold cross-validation
-trainSet <- trainControl(method = "cv", number = 10)
-# Run linear regression model
-model <- train(form = `Graduate Prospects 2018` ~ .,
-                       data = mat_reg, trControl = trainSet,
-                       method = "lm")
-par(mfrow = c(2,2))
-plot(model)
+## Bayesian Multi-Linear Regression
+```{r (HIDE) Bayesian Linear Regressions script, echo = FALSE, eval = TRUE}
+source("3.2 - analysisBayesian.R")
 ```
+### Testing regression assumptions
+(@) Given that our **frequentist multi-linear regression** satisfied the linear regression assumptions, we will assume the **Bayesian multi-linear regression** will also based on the principle that they are using the same dependent and independent variables, and the same data.
 
-# Section 4: Bayesian Multi-Linear Regression
-```{r (HIDE) Bayesian Linear Regressions script, include = FALSE, echo = FALSE}
-source("4 - analysisBayesian.R")
-```
+(@) In this way, we will forego checking the linear regression assumptions.
 
-## Formulating Priors
+### Formulating Priors
 
 (@)
 
@@ -260,7 +421,11 @@ source("4 - analysisBayesian.R")
 
 (@) We have removed NAs from our datasets so that we can carry out the Bayesian analysis. With more time, we would like to use data imputation methods so that we do not lose data. 
 
-(@) Use parallel computing methods for running caret. Exmaple can be found in documentation
+(@) Use parallel computing methods for running caret. Exmaple can be found in documentation.
+
+(@) Explore better ways to communicate this report, including **rmarkdown** slides and incorporating **rshiny** functionality to make the report and slides interactive.
+
+(@) Use **Mean Absolute Error (MAE)** isntead of **Root Mean Squared Error (RMSE)** as our metric for evaluating the performance of our **multi-linear regression** models because it is more interpretable. Also, each error influences **MAE** in direct proportion to the absolute value of the error, which is not the case for **RMSE**.
 
 # Appendix
 
@@ -269,25 +434,29 @@ source("4 - analysisBayesian.R")
 
 (@) The underlying principle here is the belief that analysis should be reproducible, so that any analyst can take the code used here, and generate the same outputs with minimal manual engineering.
 
-(@) This ensures transparency and accountability of analysis as part of a wider framework of good quality-assurance and more effective knowledge management. Additionally, it allows the automation of publications such as SFRs within governments, which significantly reduces production time of publications, and ensuring more consistent quality.[^2]
+(@) This ensures transparency and accountability of analysis as part of a wider framework of good quality-assurance and more effective knowledge management. Additionally, it allows the automation of publications such as SFRs within governments, which significantly reduces production time of publications, and ensuring more consistent quality.[^9]
 
-(@) For an amusing video that brings the benefits of RAP to life, see this Youtube clip [here](https://www.youtube.com/watch?v=s3JldKoA0zw). :)
+[^9]: For more information on RAP, see this government blog [post](https://dataingovernment.blog.gov.uk/2017/03/27/reproducible-analytical-pipeline/).
+
+(@) For an amusing video that brings the benefits of RAP to life, see this Youtube clip [here](https://www.youtube.com/watch?v=s3JldKoA0zw). 
 
 (@) Particular practices adopted to ensure alignment with RAP principles are:
+
     - **RProjects** | Creating a fixed R environment to work within and share, so that no computer-specific file directory is required. 
     - **Lock-down version of packages** | Packages used have their versions locked down, so when major updates to packages are applied, these will not affect our results. This is acheived by the package, *packrat*.
     - **Modular coding** | Breaking down our code into modules based along the lines of data loading, data manipulation, data exploration, frequentist multi-linear regression and Bayesian multi-linear regression.
     - **Set random seed** | Specifying the random seed R uses to generate regression outputs so that we can obtain the same results.
     - **Version control** | Git is used to manage different versions of this analysis project, enabling dial-back to historical copies before a major change was made, and to enable collaborative working.
-    - **Database Extracts** | When data for analysis is taken from a live feed to an underlying database such as SQL, a copy of the data at that instance is made and saved within the *RProject* so that the record of the data when the analysis was performed is collected and used to reproduce results.[^3]
+    - **Database Extracts** | When data for analysis is taken from a live feed to an underlying database such as SQL, a copy of the data at that instance is made and saved within the *RProject* so that the record of the data when the analysis was performed is collected and used to reproduce results.[^10]
    
-[^2]: For more information on RAP, see this government blog [post](https://dataingovernment.blog.gov.uk/2017/03/27/reproducible-analytical-pipeline/).  
-[^3]: We do not have a live link to an underlying database in this project, but this practice is included here for reference.
+[^10]: We do not have a live link to an underlying database in this project, but this practice is included here for reference.
 
 ## Glossary of Terms
 
 ## Notes
 (@) The code shown within the HTML document is not the complete code used for this project. Instead, only the most interesting code will be displayed within the document. To see the complete code underlying this analysis, please refer to the *.rmd* file and *.R* scripts within the RProject.
+
+(@) The language, [LaTeX](http://www.statpower.net/Content/310/R%20Stuff/SampleMarkdown.html), was used to write mathematical functions and equations within the HTML report. In particular, the **LaTeX** code for **RMSE** was taken from inspecting the element (HTML code) on this [webpage from Standord](http://statweb.stanford.edu/~susan/courses/s60/split/node60.html).
 
 (@) Within the code scripts, the following naming conventions are used:
     - R scripts | camelCase
@@ -319,6 +488,7 @@ source("4 - analysisBayesian.R")
   + **fitdistrplus** | Powerful distribution-plotting of data, enabling the selection of the best-fitting common distribution to your data.
   + **runjags** | Facilitates Bayesian analysis as well as doing so efficiently via parallel processing.
   + **coda** | Performs Markov-Chain Monte Carlo diagnostic checks for Bayesian analysis.
+  + **mcmcse** | Compute **effective sample size (ESS)**.
 
 ## Credits
 (@) The following people have influenced this report:
@@ -331,8 +501,9 @@ source("4 - analysisBayesian.R")
   + **Chris Thom (DfE)** | apply functions > loops
   + **Michelle Clements (BEIS)** | Text data cleaning
 
+# Environment
+(@) This analysis was conducted on a laptop with the specifications and packages outlined below.
 ```{r pressure, echo=FALSE}
 sessionInfo()
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

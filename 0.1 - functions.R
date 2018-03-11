@@ -271,7 +271,7 @@ func_kFoldCV <- function(x, y, partition, folds, parameters, burnin, nChains) {
     # Run MCMC simulations using parallel computing methods.
     temp_reg <- run.jags(method = "parallel", model = "regModel.txt", monitor = parameters,
                          data = data_reg, n.chains = nChains, burnin = burnin, 
-                         summarise = FALSE, plots = FALSE)
+                         summarise = FALSE, plots = FALSE, silent.jags = TRUE)
     
     # Store the MCMC objects.
     list_mcmc[[i]] <- as.mcmc.list(temp_reg)
