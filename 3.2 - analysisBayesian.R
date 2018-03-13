@@ -27,13 +27,11 @@ temp <- ifelse(is.na(temp), median(temp, na.rm = TRUE), temp)
 temp <- (temp - min(x = temp)) / (max(temp) - min(temp))
 temp <- func_transPos(temp)                    
 
-# FORMULATE PRIORS -----------------
 # Graduate Prospects 2017 distribution
-plotdist(data = temp, histo = TRUE, demp = TRUE)
-descdist(data = temp, discrete = FALSE)
+# plotdist(data = temp, histo = TRUE, demp = TRUE)
+# descdist(data = temp, discrete = FALSE)
 
-# Fit the uniform, normal, and beta distributions
-# Can't be beta because Graduate Prospect  range outside of [0,1]
+# Fit the uniform and normal distributions
 rpt_dist <- list()
 name_dist <- c("Uniform", "Normal")
 rpt_dist[[1]] <- fitdist(data = temp, distr = "unif", method = "mme",
@@ -42,8 +40,8 @@ rpt_dist[[2]] <- fitdist(data = temp, distr = "norm", method = "mme",
                        discrete = F, na.rm = T)
 
 # Plot the goodness-of-fit graphs
-par(mfrow = c(2,2)) 
-func_plotGoF(dist = rpt_dist, titles = name_dist)
+# par(mfrow = c(2,2)) 
+# func_plotGoF(dist = rpt_dist, titles = name_dist)
 
 # BAYES REGRESSION -----------------
 # Setup
@@ -59,23 +57,22 @@ tic <- Sys.time()
 
 # Run model
 set.seed(123)
-model_regBayes <- run.jags(method = "parallel", model = "regModel.txt", monitor = vec_regParameters,
+model_regBayes <- run.jags(method = "parallel", model = "bayesModel.bug", monitor = vec_regParameters,
                            data = data_regBayes, n.chains = 4, summarise = FALSE, plots = FALSE, silent.jags = TRUE)
 toc <- Sys.time()
-toc - tic
+time <- toc - tic
  # convert to mcmc list
 model_regBayes <- as.mcmc.list(model_regBayes)
 
 # MCMC DIAGNOSTICS -----------------
-#for (i in 1:length(vec_regParameters)) diagMCMC(codaObject = model_regBayes, parName = vec_regParameters[i])
- # turn off plotting window so can show console-generated plots
-dev.off()
- # Gelman-Rubin statistic and summaries
-gelman.diag(x = model_regBayes)
-summary(object = model_regBayes)
- # credible interval
-HPDinterval(model_regBayes, prob = 0.95)
+ # representativeness
+# traceplot(model_regBayes)
+ # accuracy and stability
+# autocorr.plot(model_regBayes[[1]])
 
+# Interpreting regression model outputs -----------------
+model_regBayesSum <- summary(object = model_regBayes)
+ 
 # RMSE ----------------------------
 tic <- Sys.time()
 # From above plots, set burnin = 6,000
@@ -97,4 +94,7 @@ if(txt_rmseBayes < 0.3) {
     txt_rmse_conc <- c("very high", "inaccurate")
 }
 
-rm(temp, len, numRows, tic, toc, i, data_regBayes)
+# Credible interval ---------------------
+model_regBayesci <-  HPDinterval(obj = model_regBayes, prob = 0.95)[[1]]
+
+rm(len, numRows, tic, toc, i, data_regBayes)

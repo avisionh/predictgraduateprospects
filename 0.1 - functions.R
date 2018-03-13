@@ -269,7 +269,7 @@ func_kFoldCV <- function(x, y, partition, folds, parameters, burnin, nChains) {
     data_reg <- list(x = train_set[1:noRowsIV, ], y = train_predictors[1:noRowsDV])
     
     # Run MCMC simulations using parallel computing methods.
-    temp_reg <- run.jags(method = "parallel", model = "regModel.txt", monitor = parameters,
+    temp_reg <- run.jags(method = "parallel", model = "bayesModel.bug", monitor = parameters,
                          data = data_reg, n.chains = nChains, burnin = burnin, 
                          summarise = FALSE, plots = FALSE, silent.jags = TRUE)
     

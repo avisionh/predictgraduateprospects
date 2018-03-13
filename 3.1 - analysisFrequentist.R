@@ -25,12 +25,15 @@ model_regFreq <- train(form = `Graduate Prospects 2018` ~ .,
                        data = mat_reg, trControl = trainSet,
                        method = "lm")
 
-# Compute confidence interval, and clean look
-rpt_ci <- confint(object = model_regFreq$finalModel, level = 0.95)
-rpt_ci <- round(x = rpt_ci[,c("2.5 %","97.5 %")], digits = 2)
-row.names(rpt_ci) <- gsub(pattern = "\\\\|`", replacement = "", x = row.names(rpt_ci))
+# SUMMARY ---------------
+model_regFreqSum <- summary(model_regFreq)
 
-# RMSE text
+# CONFIDENCE INTERVAL ------------
+model_regFreqci <- confint(object = model_regFreq$finalModel, level = 0.95)
+model_regFreqci <- round(x = model_regFreqci[,c("2.5 %","97.5 %")], digits = 2)
+row.names(model_regFreqci) <- gsub(pattern = "\\\\|`", replacement = "", x = row.names(model_regFreqci))
+
+# RMSE --------------------
 txt_rmseFreq <- ModelMetrics::rmse(actual = model_regFreq$finalModel$model$.outcome, 
                                predicted = model_regFreq$finalModel$fitted.values)
 txt_rmseFreq <- round(x = txt_rmseFreq, digits = 2)

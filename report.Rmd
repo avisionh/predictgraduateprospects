@@ -7,7 +7,7 @@ output:
     number_sections: false
     theme: journal
     highlight: haddock
-    code_folding: show
+    code_folding: hide
     fig_caption: true
     toc: true
 ---
@@ -36,18 +36,34 @@ source('0.2 - mcmcFunctions.R')
 options(scipen = 999)
 ```
 # Executive Summary
+(@) **Bayesian statistics** is a fundamentally different way of viewing, approaching, and tackling stastitical problems. It involves thinking about situations from a probabalistic viewpoint.
 
-# Recommendations
+(@) Contrast this with the other main competing school of statistical thought, **frequentist statistics**, which views situations within the context of repeated events.
+
+(@) These differences manifest themselves in the actual statistical techniques applied to problems, with **multi-linear regression** being the technique considered in this paper. For each school-of-thought, there is a different way to carry out the statistical technique.
+
+(@) Whereas in most cases, the results of these models should broadly align irrespective of whether you apply a **frequentist** or **Bayesian** version of a statistical technique, the way you interpret and communicate these results are different.
+
+(@) **Bayesian** interpretations of results fall more in-line with how we intuitively think about problems.
+
+# Motivating Example
+(@) Alan Turing, mathematician, computer scientist, and one of the forebearers of modern computers; led efforts to unravel the German Enigma code - a development that helped the Allies win the Second World War. Turing employed several technologies and techniques in his work, including Banburismus, a process he invented which used sequential conditional probability to infer information about the likely settings of the Enigma machine.
+
+(@) Banburismus is described as *'a highly intensive, Bayesian system'* that allowed Turing and colleagues to guess a stretch of letters in an Enigma message, measure their belief in the validity of these guesses - using Bayesian methods to assess the probabilities - and add more clues as they arrived.
+
+(@) Therefore, if it is good enough for Turing, and it is good enough to win a world war, then it must be good enough for us...`r toString(emo::ji("tipping"))`
 
 ***
 
 # Section 1: Introduction
 ## Motivation
-(@) The purpose of this paper is to investigate the use of **Bayesian statistics** for forecasting the graduate prospects of *first-degree students* studying full-time.[^1] `r toString(emo::ji("flex"))`
+(@) The purpose of this paper is to investigate the use of **Bayesian statistics** for forecasting the graduate prospects of *first-degree students* studying full-time.[^1] 
 
 [^1]: *First-degree students* are defined as students taking their first undergraduate degree or professional qualification.
 
 (@) We will compare our outputs of applying a **frequentist** against a **Bayesian multi-linear regression** using **k-fold cross-validation**. 
+
+(@) By the end, I hope to have provided to you with a gentle and accessible introduction to what **Bayesian statistics** is, how it is different to **frequentist statistics**, the benefits of thinking and viewing problems from a **Bayesian** perspective, and above all, show how you can practically implement **Bayesian statistics** in your own work. Hopefully, I can show that it is not rocket-`r toString(emo::ji("science"))`. `r toString(emo::ji("wink"))`
 
 ## Caveats
 (@) As we will remove *sex* and other highly-correlated variables with *sex* from our model, then the predictive accuracy of our model may not be optimal. This to ensure we meet [GDS Ethics Framework](https://www.gov.uk/government/publications/data-science-ethical-framework) standards.
@@ -249,7 +265,7 @@ $$ (3)\quad Posterior\: beliefs\: \propto\: Prior\: \times\: Likelihood $$
 
 > **Bayesian reasoning** - You hear your phone ringing. In addition to having a mental model of your house, you also know the locations where you have misplaced your phone in the past. Therefore, you combine the inferences from the ringing and your prior knowledge of where you have misplaced your phone in the past to identify an area you must search to locate your phone.
 
-[^4]: Example taken from [this StackExchange question](https://stats.stackexchange.com/questions/22/bayesian-and-frequentist-reasoning-in-plain-english)
+[^4]: Example taken from [this StackExchange question](https://stats.stackexchange.com/questions/22/bayesian-and-frequentist-reasoning-in-plain-english). Another excellent Star Wars analogy of **Bayesian reasoning** can be found at the [countbayesie](https://www.countbayesie.com/blog/2015/2/18/hans-solo-and-bayesian-priors) website.
 
 (@) Formally fleshing out this example, the differences between **frequentist** and **Bayesian** statistics is summarised in the table below.
 
@@ -273,12 +289,28 @@ cat(table)
 
 > A Bayesian would say over one 95% credible interval, the probability the parameter of interest will lie within this interval is 95%.
 
-(@) In this way, a **Bayesian** inference lends itself better to interpretation as it is more intuitive, and on a practical level, we typically do not have time/money to collect data repeatedly. [^4]
+(@) In this way, a **Bayesian** inference lends itself better to interpretation as it is more intuitive, and on a practical level, we typically do not have time/money to collect data repeatedly. [^5]
 
-[^4]: Indeed, the fact that **Bayesian** inference is more intuitive was the subject of discussion in Daniel Kahnemann's best-seller, *Thinking, Fast and Slow*.
+[^5]: Indeed, the fact that **Bayesian** inference is more intuitive was the subject of discussion in Daniel Kahnemann's best-seller, *Thinking, Fast and Slow*.
 
-## How it works
+## How it works (technical discussion)
+(@) The four general steps followed for the **Bayesian process** are:
+  i. Specify a *probability distribution* for each parameter in the model. 
+  ii. Combine these distributions into the *joint posterior distribution*.
+  iii. Find the *conditional marginal distributions* from the *joint posterior distribution*.
+  iv. Employ **Markov Chain Monte Carlo (MCMC)** methods to maximise the *joint posterior distribution*. **Gibbs sampling** is a tool in **MCMC** methods for deriving estimates of parameters from a *joint posterior distribution*.
 
+(@) By determining *conditional marginal distribution* for each random variable of the model, then generating random samples from these distributions, will eventually converge to random samples from the *joint posterior distribution*.
+
+(@) In terms of how **Bayesian analysis** is practically implemented, we use computational resources to sample. In particular, given that our *posteriors* are probability distributions, then we can sample all the parameters from our *joint posterior distribution*. To do this, we focus on samples from each parameter individually, which is the *marginal posterior distribution*. Now, whilst integrating over multiple parameters is difficult, **Gibbs sampling** makes this possible and is employed to generate *posterior samples*.
+
+(@) Note that the *posterior distribution* is a probability distribution over the parameter space, and this quantifies how probable it is that a particular value of the parameter(s) has given rise to the observed data. This distribution provides not only the optimal point estimate of the parameters, but also a quantification of the entire parameter space. In this way, our **Gibbs sampling** method explores the entire parameter space, asking which regions are most probable, given the data observed.
+
+(@) Our **MCMC** method explores the parameter space through having an ensemble of “walkers” that move around the space randomly. At each point where a walker steps, the integrand value at that point is counted towards the integral. The walker may then make a number of tentative steps around the area, looking for a place with a reasonably high contribution to the integral to move into next.
+
+(@) Whilst it is not difficult to construct a **Markov Chain** with the desired properties, the more difficult problem lies in determining how many steps/iterations to run the chain for it to converge to the *stationary distribution* within an acceptable error. A good chain will have rapid "mixing", where we reach the *stationary distribution* quickly from an arbitrary starting position. We empirically assess this convergence to the *stationary distribution* by running several independently simulated **Markov chains**, and checking the ratio of inter-chain to intra-chain variance for all the parameters sampled is close to one. In this paper, we use the **Gelman-Rubin diagnostic** for this.
+
+(@) If all of this technical explanation makes you feel `r toString(emo::ji("weary"))`, do not fret, we flesh this out with an explicit example. `r toString(emo::ji("thanks"))`
 
 # k-fold Cross validation
 ## What is it?
@@ -354,15 +386,15 @@ model_regFreq <- train(form = `Graduate Prospects 2018` ~ .,
 ```
 
 ### Testing regression assumptions
-(@) Before we begin to view the outputs of the **frequentist multi-linear regression** model we created, we need to check that the model meets the regression assumptions. Code for plotting this is below. [^5]
+(@) Before we begin to view the outputs of the **frequentist multi-linear regression** model we created, we need to check that the model meets the regression assumptions. Code for plotting this is below. [^6]
 
-[^5]: For a good webpage on how to interpret regression diagnostic plots, visit the [University of Virginia library's webpage](http://data.library.virginia.edu/diagnostic-plots/).
+[^6]: For a good webpage on how to interpret regression diagnostic plots, visit the [University of Virginia library's webpage](http://data.library.virginia.edu/diagnostic-plots/).
 
   + **A1: Linearity** | In the top-left panel, we have the *residuals vs. fitted* values plot. If we find equally spread **residuals** around the horizontal red line, this is a good sign that you have a linear relationship between your independent variables and dependent variable. In this instance, the points/**residuals** are spread weakly equally/randomly around our red-line, so we weakly meet the linearity assumption.
   
-  + **A2: Normal Distribution** | In the top-right panel, we have the *normal Q-Q* plot. If we find the residuals are lined up well along the straight, diagonal line, then this is a good sign that we have normality of **residuals**. In this instance, our points/**residuals** follow the straight, diagonal line well, so we meet the normality assumption. [^6]
+  + **A2: Normal Distribution** | In the top-right panel, we have the *normal Q-Q* plot. If we find the residuals are lined up well along the straight, diagonal line, then this is a good sign that we have normality of **residuals**. In this instance, our points/**residuals** follow the straight, diagonal line well, so we meet the normality assumption. [^7]
   
-[^6]: If we did not meet this assumption, we can **Box-Cox** transform our dependent variable to try and make it normally-distributed.
+[^7]: If we did not meet this assumption, we can **Box-Cox** transform our dependent variable to try and make it normally-distributed.
 
   + **A3: Homoscedasticity** | In the bottom-left panel, we have the *scale-location* plot. If we find equally/randomly spread points around the red, horizontal line, then this is a good sign that we have homoscedasticity of the **residuals**. In this instance, our points/**residuals** are spread-further to the left of the plot, and more concentrated on the right of the plot, causing the red-line to be diagonal rather than horizontal. We do not meet the heteroscedasticity assumption. However, since we are not dealing with time-series data, this is not of significant importance.
   
@@ -394,27 +426,173 @@ ModelMetrics::rmse(actual = model_regFreq$finalModel$model$.outcome,
 ```
 
 ### Confidence interval
-(@) In the output below, we have the 95% **confidence interval** for each of our independent variables. These values can be interpreted as follows; *if we were to take 100 samples, 95 of those samples' independent variables parameters' values will lie within the region bounded by 2.5% and 97.5%, on average.*
+(@) In the output below, we have the 95% **confidence interval** for each of our independent variables. These values can be interpreted as follows; 
+
+> If we were to take 100 samples, 95 of those samples' independent variables parameters' values will lie within the region bounded by 2.5% and 97.5%, on average.
+
 ```{r (SHOW) CI code, echo = TRUE, eval = FALSE}
 confint(object = model_regFreq$finalModel, level = 0.95)
 ```
 ```{r (HIDE) CI , echo = FALSE, eval = TRUE}
-rpt_ci
+model_regFreqci
 ```
 
 ## Bayesian Multi-Linear Regression
-```{r (HIDE) Bayesian Linear Regressions script, echo = FALSE, eval = TRUE}
+```{r (HIDE) Bayesian Linear Regressions script, echo = FALSE, eval = TRUE, message = FALSE, include = FALSE}
 source("3.2 - analysisBayesian.R")
 ```
+### Framework
+(@) We will follow the steps below to conduct **Bayesian analysis**:
+  i. Form **prior distribution** of your dependent variable, *Graduate Prospects*. This can be from an assumption made by the business such as policymakers who have a view of how the dependent variable is distributed, or it can be based on past values of your dependent variable. We use the **fitdistrplus** package for this.
+  ii. Estimate the parameters for your **prior distribution** and see how well your dependent variable fits your **prior distribution**. If it does, proceed further. If it does not, try another common distribution.
+  iii. Use the parameters from your **prior distribution** to specify your **Bayesian model**. We define this model using **BUGS** code (which drives the Gibbs-Sampler) in our *bayesModel.bug* file and use the **runjags** package for this.
+  iv. Run diagnostic tests on your **MCMC** chains to ensure your chains are *representative, accurate and stable, and efficient*.
+  v. Tune the parameters when running your **Bayesian model** if your **MCMC** chains are not either not *representative, accurate, or stable*. Otherwise, analyse your model outputs!
+  
 ### Testing regression assumptions
 (@) Given that our **frequentist multi-linear regression** satisfied the linear regression assumptions, we will assume the **Bayesian multi-linear regression** will also based on the principle that they are using the same dependent and independent variables, and the same data.
 
 (@) In this way, we will forego checking the linear regression assumptions.
 
 ### Formulating Priors
+(@) In the two plots  below, we have the density and cumulative density plots of *Graduate Prospects 2017*. From this, we see that our distribution appears to follow a normal distribution.
+```{r (SHOW) Density and CDF plots, echo = TRUE, eval = TRUE}
+# Graduate Prospects 2017 distribution
+plotdist(data = temp, histo = TRUE, demp = TRUE)
+```
 
-(@)
+(@) To test our assumption above, we plot the **Cullen and Frey graph** below, which allows us to see what common distribution our dependent variable, *Graduate Prospects 2017*, aligns most closely to. 
 
+(@) Our dependent variable, *Graduate Prospects 2017*, is the blue dot on the graph, and it is most closest to the triangle and asterisk objects, whilst also lying in the grey region. We will discuss each of these aspects in turn.
+  + Triangle | The triangle represents the uniform distribution, so by our blue dot, which represents our dependent variable, being close to the triangle object, this means that our dependent variable is close to being uniformly distributed.
+  
+  $$ {U}(\alpha,\: \beta)\: where -\infty\: <\: \alpha\: <\: \beta\: <\: \infty $$
+  
+  + Asterisk | The asterisk represents the normal distribution, so by our blue dot, which represents our dependent variable, being close to the asterisk object, this means that our dependent variable is close to being normally distributed.
+  
+  $$ N(\mu,\: \sigma^2)\: where\: \mu\: \in\: \!R\: and\: \sigma^2\: >\: 0 $$
+  
+  + Grey region | The grey region represents the beta distribution, so by our blue dot, which represents our dependent variable, being within this grey region, this means there are $\alpha$ and $\beta$ values such that our dependent variable is close to being beta-distributed.
+  
+  $$ B(\alpha,\: \beta)\: where\: \alpha,\: \beta\: >\: 0 $$
+  
+(@) Our dependent variable, *Graduate Prospects 2017*, cannot be beta-distributed however because *Graduate Prospects 2017* can take values greater than one. For a beta-distribution, the set of possible values must lie in the interval [0,1]. Therefore, we will fit the uniform and normal distribution to our *Graduate Prospects* data.
+```{r (SHOW) Formulating priors, echo = TRUE, eval = TRUE}
+# Graduate Prospects 2017 distribution
+descdist(data = temp, discrete = FALSE)
+```
+
+(@) In the output below, we have estimated the parameters for our dependent variable, *Graduate Prospects 2017*, if it was to take either a uniform or normal distribution, using **methods-of-moments**. Thus, if *Graduate Prospects 2017* was to take a uniform distribution, its parameters will be $\alpha$ = `r toString(round(x = rpt_dist[[1]]$estimate[1], digits = 2))` and $\beta$ = `r toString(round(x = rpt_dist[[1]]$estimate[2], digits = 2))`. If *Graduate Prospects 2017* was to take a normal distribution, its parameters will be $\mu$ = `r toString(round(x = rpt_dist[[2]]$estimate[1], digits = 2))` and $\sigma^2$ = `r toString(round(x = rpt_dist[[2]]$estimate[2], digits = 2))`.
+```{r (SHOW) Estimate parameters, echo = TRUE, eval = TRUE}
+# Fit the uniform and normal distributions
+fitdist(data = temp, distr = "unif", method = "mme",
+                       discrete = F, na.rm = T)
+fitdist(data = temp, distr = "norm", method = "mme",
+                       discrete = F, na.rm = T)
+```
+
+(@) In the **goodness-of-fit plots** below, we examine how well our proposed uniform and normal distributions actually fit our dependent variable, *Graduate Prospects 2017*, in more detail.
+  + The *histogram and theoretical densities* and *empirical and theoretical CDFs* plots on the left-side of the plots below are considered the classical **goodness-of-fit plots**. From these, we can see that both distributions fit our dependent variable, *Graduate Prospects 2017*, very well.
+  + The *quantile-quantile (Q-Q) plot* in the top-right panel shows that both the uniform and normal distributions provide a good description of the right-tail of our dependent variable's empirical distribution.
+  + The *probability-probability (P-P) plot* in the bottom-right panel shows that both the uniform and normal distributions provide a good description of the centre of our dependent variable's empirical distribution.[^8]
+  
+[^8]: One typically complements the use of the **goodness-of-fit plots** by computing recommended **goodness-of-fit statistics** such as the **Kolmogorov-Smirnov stastistic**, **Cramer-von Mises statistic**, or the **Anderson-Darling statistic**. They then use these statistics to test against the null hypothesis that the empirical (dependent variable) distribution fits an estimated (proposed) distribution. However, since these recommended **goodness-of-fit statistics** are available only for **maximum likelihood estimations**, then we cannot take this complimentary approach.
+```{r (SHOW) Goodness-of-fit plots, echo = TRUE, eval = TRUE}
+par(mfrow = c(2,2)) 
+func_plotGoF(dist = rpt_dist, titles = name_dist)
+```
+
+(@) For our purposes, we will fit the normal distribution onto our dependent variable, *Graduate Prospects*, for the **Bayesian multi-linear regression** model that we will build. Whilst the uniform distribution has shown itself to be equally appropriate, we choose the normal distribution arbitrarily for the sake of comparing against the **frequentist multi-linear regression** model.
+$$ Graduate\: Prospects\: \~\: N(\mu,\: \sigma^2) $$ 
+  where $\mu$ = `r toString(round(x = rpt_dist[[2]]$estimate[1], digits = 2))` and $\sigma^2$ = `r toString(round(x = rpt_dist[[2]]$estimate[2], digits = 2))`.
+
+### Building the Bayesian model
+(@) We build the **Bayesian multi-linear regression** model using **parallel computing** in the code below.
+```{r (SHOW) Bayesian MLR, echo = TRUE, eval = FALSE}
+# create vector of regressuion parameters
+vec_regParameters <- "beta0"
+len <- ncol(x = mat_reg) - 1
+for(i in 1:len) vec_regParameters <- append(x = vec_regParameters, values = paste0("beta[", i, "]"))
+numRows <- nrow(mat_reg)
+# define DV and IVs for regression
+data_regBayes <- list(x = mat_reg[1:numRows, 1:len], y = mat_reg[1:numRows, len + 1])
+
+# run model
+model_regBayes <- run.jags(method = "parallel", model = "bayesModel.bug", monitor = vec_regParameters,
+          data = data_regBayes, n.chains = 4, summarise = FALSE, plots = FALSE, silent.jags = TRUE)
+```
+
+### Markov-Chain Monte Carlo analysis
+(@) The purpose of running **Monte Carlo Markov Chain (MCMC)** diagnostics is to spot large issues with our chains. This is to help inform us how many whether the number of iteration we run is enough to obtain convergence in our chains, and therefore believe our samples generated from this process are truly representative for estimating the characteristics of our gamma distribution of interest. 
+
+(@) More specifically, there are three main goals we wish to achieve when generating an MCMC sample from our posterior distribution:
+  i. **Representativeness** - values in the chain must be representative of the posterior distribution. They should not be unduly influenced by the initial value of the chain. They should also fully explore the range of the posterior distribution without getting stuck at a certain value.
+  ii. **Accuracy and stability** - chain should be of sufficient size so that estimates are accurate and stable. This means that the estimates of central tendency, such as the mean and median, and the limits of the 95% highest density interval (HDI) should not be different if the MCMC analysis was run again.
+  iii. **Efficiency** - the chain should be generated with the minimal amount of steps, in order to reduce computing power.
+
+#### i. Representativeness
+(@) In the plots below, we have the **trace/time-series plots** of the **MCMCs** run. It shows the values each of our $\beta$ parameters took during the runtime of our chain. If our **MCMC** method explores the parameter space effectively and efficiently (that is, it does so randomly) for each of our $\beta$ regression parameters, then we should expect to see "hairy caterpillar" in these **trace/time-series plots**.
+
+(@) More concretely, we want to see no clear paatern nor trend in the plot, meaning no obvious movements to the top nor bottom of the plots. In this way, our **MCMC** method is leading our $\beta$ regression parameters to consider all possible values they can take, with approximately the same probability that they will land on each possible value.
+
+(@) Checking for *representativeness*, we see that our four parallel chains run generally overlap each other for each $\beta$ parameter, so our chains are fulfil this condition.
+```{r (SHOW) Traceplots, echo = TRUE, eval = TRUE}
+par(mfrow = c(3,3))
+traceplot(model_regBayes)
+```
+
+#### ii. Accuracy and stability
+(@) In the plots below, we have the **autocorrelation function (ACF) plot**, which displays the *correlation coefficient* at different chains/lags. We want to see the vertical lines in each plot become short quickly across the lags as this signifies that our chains are not auto-correlated, meaning that the steps our "walker" takes when exploring the parameter space for $\beta_i$ are not substantially influenced by the previous step they took.
+
+(@) What this shows is that for our $\beta0$, $\beta_5$, and $\beta_6$ parameters, the *correlation coefficient* between the first and subsequent chains/lags do not fall by much after successive lags, and therefore our chains for them are highly auto-correlated – they change gradually step-by-step. Henceforth successive chains for these parameters do not provide independent information about our $\beta0$, $\beta_5$, and $\beta_6$ distributions. For our other parameters, we have less autocorrelation. Thereforem we do not fully satisfy this condition.
+
+```{r (SHOW) Accuracy, echo = TRUE, eval = TRUE}
+# ACF Plot for first chain only
+autocorr.plot(model_regBayes[[1]])
+```
+
+#### iii. Efficiency
+(@) When running our chains using **parallel computing** methods, it took `r toString(round(x = time, digits = 2))` seconds which is a reasonable time.
+
+(@) From the **trace plots** in the *Chain Representativeness* section above, we can set our **burnin** for running our chains to 6,000. This allows us to get our $\beta_i$ parameters to settle to a stationary state faster, thereby improving our efficiency further.
+
+### Interpreting regression model outputs
+(@) In the below output, we have the results of our model.
+  + Coefficient significance | From the **Bayesian** equivalent of **p-values**, **Naive SE**, we see that all our independent variables are stastically significant at the 5% significance level.
+```{r (SHOW) Bayesian regression summary, echo = TRUE, eval = TRUE}
+summary(model_regBayes)$statistics
+```
+
+### Regression model accuracy
+(@) The **RMSE** for our **Bayesian multi-linear regression** model is `r toString(txt_rmseBayes)`. As we have scaled our data to be in the range [0,1], then this is a `r toString(txt_rmse_conc[1])` value, hence our model is `r toString(txt_rmse_conc[2])` in predicting *Graduate Prospects 2018*.[^9]
+
+[^9]: Use **k-fold cross-validation** with 10-folds to compute the **RMSE** here. Code has been hidden because a custom function was created to compute this, and it is not immediately obvious that the function computes the **RMSE** as it returns several objects within a list.
+
+### Credible interval
+(@) In the output below, we have the 95% **credible interval** for each of our independent variables. These values can be interpreted as follows: 
+
+> If we were to take one sample, there is a 95% probability that our parameter will lie within the region bounded by 2.5% and 97.5%.
+```{r (SHOW) C.I, echo = TRUE, eval = TRUE}
+# Take C.I associated with first chain only
+HPDinterval(obj = model_regBayes, prob = 0.95)[[1]]
+```
+
+## Comparing Bayesian with Frequentist Outputs
+(@) Below, we compare the summaries of our **multi-linear regression** models.
+```{r (SHOW) Summary, echo = TRUE, eval = TRUE}
+model_regFreqSum
+model_regBayesSum
+```
+
+(@) Below, we compare the **confidence/credible intervals** of each of our models.
+```{r (SHOW), echo = TRUE, eval = TRUE}
+model_regFreqci
+model_regBayesci
+```
+
+(@) In our **frequentist multi-lienar regression**, our **RMSE** was `r toString(txt_rmseFreq)`, whereas in our **Bayesian multi-linear regression**, our **RMSE** was `r toString(txt_rmseBayes)`.
+
+***
 
 # Next Steps
 (@) For text data cleaning, would like to investigate the *quanteda* package which is said to be more powerful, faster, and efficient than existing text analysis packages such as *tm*.
@@ -423,20 +601,35 @@ source("3.2 - analysisBayesian.R")
 
 (@) Use parallel computing methods for running caret. Exmaple can be found in documentation.
 
+(@) Run **Bayesian multi-linear regression** model with a uniform distribution as our *prior*.
+
+(@) Would like to analyse our **MCMC** chains more robustly by considering the **Gelman-Rubin stasitic and plots** for chain representativeness; check if our **multivariate effective sample size** is below our **minimum effective sample size**, and the **Monte Carlo Standard Error (MCSE)** for chain accuracy and stability, 
+
 (@) Explore better ways to communicate this report, including **rmarkdown** slides and incorporating **rshiny** functionality to make the report and slides interactive.
 
 (@) Use **Mean Absolute Error (MAE)** isntead of **Root Mean Squared Error (RMSE)** as our metric for evaluating the performance of our **multi-linear regression** models because it is more interpretable. Also, each error influences **MAE** in direct proportion to the absolute value of the error, which is not the case for **RMSE**.
 
-# Appendix
+(@) Complete *Glossary of Terms*.
 
+(@) Improve use of **Git** so that it big functionality/features added are committed to the central repo.
+
+(@) Investigate a plot highlighting differences in C.I. between **Bayesian** and **frequentist**.
+
+(@) Flesh out **GitHub** README.md file.
+
+(@) Write code to write *.csv* copy of web-scraped HTML table.
+
+***
+
+# Appendix
 ## Reproducible Analytical Pipeline (RAP)
 (@) This paper adopts RAP principles to ensure ease of reproducibility of analysis.
 
 (@) The underlying principle here is the belief that analysis should be reproducible, so that any analyst can take the code used here, and generate the same outputs with minimal manual engineering.
 
-(@) This ensures transparency and accountability of analysis as part of a wider framework of good quality-assurance and more effective knowledge management. Additionally, it allows the automation of publications such as SFRs within governments, which significantly reduces production time of publications, and ensuring more consistent quality.[^9]
+(@) This ensures transparency and accountability of analysis as part of a wider framework of good quality-assurance and more effective knowledge management. Additionally, it allows the automation of publications such as SFRs within governments, which significantly reduces production time of publications, and ensuring more consistent quality.[^10]
 
-[^9]: For more information on RAP, see this government blog [post](https://dataingovernment.blog.gov.uk/2017/03/27/reproducible-analytical-pipeline/).
+[^10]: For more information on RAP, see this government blog [post](https://dataingovernment.blog.gov.uk/2017/03/27/reproducible-analytical-pipeline/).
 
 (@) For an amusing video that brings the benefits of RAP to life, see this Youtube clip [here](https://www.youtube.com/watch?v=s3JldKoA0zw). 
 
@@ -447,9 +640,9 @@ source("3.2 - analysisBayesian.R")
     - **Modular coding** | Breaking down our code into modules based along the lines of data loading, data manipulation, data exploration, frequentist multi-linear regression and Bayesian multi-linear regression.
     - **Set random seed** | Specifying the random seed R uses to generate regression outputs so that we can obtain the same results.
     - **Version control** | Git is used to manage different versions of this analysis project, enabling dial-back to historical copies before a major change was made, and to enable collaborative working.
-    - **Database Extracts** | When data for analysis is taken from a live feed to an underlying database such as SQL, a copy of the data at that instance is made and saved within the *RProject* so that the record of the data when the analysis was performed is collected and used to reproduce results.[^10]
+    - **Database/Web Extracts** | When data for analysis is taken from a live feed to an underlying database such as SQL, a copy of the data at that instance is made and saved within the *RProject* so that the record of the data when the analysis was performed is collected and used to reproduce results.[^11]
    
-[^10]: We do not have a live link to an underlying database in this project, but this practice is included here for reference.
+[^11]: We do not have a live link to an underlying database in this project, but this practice is included here for reference.
 
 ## Glossary of Terms
 
@@ -500,6 +693,8 @@ source("3.2 - analysisBayesian.R")
   + **Salman Kasim (DfE)** | Web-scraping
   + **Chris Thom (DfE)** | apply functions > loops
   + **Michelle Clements (BEIS)** | Text data cleaning
+
+***
 
 # Environment
 (@) This analysis was conducted on a laptop with the specifications and packages outlined below.
