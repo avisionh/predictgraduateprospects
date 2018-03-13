@@ -20,21 +20,27 @@ library(tm)
 library(SnowballC)
 library(stringdist)
 library(rvest)
-library(pander)
 library(rmarkdown)
 library(caret)
 library(fitdistrplus)
 library(runjags)
 library(coda)
-library(mcmcse)
 
 # Load in functions
-source('0.1 - functions.R')
-source('0.2 - mcmcFunctions.R')
+source('0 - functions.R')
 
 # Turn off scientific notation
 options(scipen = 999)
 ```
+# Author's Note
+(@) Key lesson learnt here is that in most cases, you should do a piece of analysis *"well enough"*, so that it does not necessarily need to be perfect. However, when attempting to communicate a new concept in a way that people, especially analysts interested in the details and process, understand in a clear, concise and succint manner, as well as encouraging them to try out the concept, then extra time, effort and thought must go to doing more than *"well enough"*.
+
+(@) In this regard, your humble author has tried their best to ensure that the language is crystal-clear, the code is as readable as possible, the naming conventions are immediately obvious as to how wha they represent, and it is all consistent.
+
+(@) Nevertheless, your humble author would be most grateful to receive feedback, questions, and suggestions on how this analysis and report can be improved further. Feel free to get in touch either via the [GitHub page](https://github.com/avisionh/Predict-Graduate-Prospects), or via [email](a_vision@hotmail.co.uk). `r toString(emo::ji("sorry"))`
+
+(@) Please do let this author know if this analysis has encouraged you to try **Bayesian statistics** yourself. Your author would be most delighted to see it being implemented more widely.`r toString(emo::ji("smile"))`
+
 # Executive Summary
 (@) **Bayesian statistics** is a fundamentally different way of viewing, approaching, and tackling stastitical problems. It involves thinking about situations from a probabalistic viewpoint.
 
@@ -51,7 +57,7 @@ options(scipen = 999)
 
 (@) Banburismus is described as *'a highly intensive, Bayesian system'* that allowed Turing and colleagues to guess a stretch of letters in an Enigma message, measure their belief in the validity of these guesses - using Bayesian methods to assess the probabilities - and add more clues as they arrived.
 
-(@) Therefore, if it is good enough for Turing, and it is good enough to win a world war, then it must be good enough for us...`r toString(emo::ji("tipping"))`
+(@) Therefore, if it is good enough for Turing, and it is good enough to win a world war, then it must be good enough for us... `r toString(emo::ji("tipping"))`
 
 ***
 
@@ -76,170 +82,8 @@ options(scipen = 999)
 
 (@) From transforming our dataframes so that they are of *double* datatype, the conversion for *'Acad Services Speeds'* failed, so we generated NAs. Whils this does not affect the analysis as we have not used this data, it is something worth bearing in mind for future analysis.
 
-## Data
-### Data: Sources
-(@) The data used in this project comes from the Higher Educations Standards Agency's (HESA) Statistical First Release (SFR247) and the Complete University Guide's university rankings table.
-
-(@) In particular, the following datasets are used:
-
-    + [2018 Graduate Prospects](https://www.thecompleteuniversityguide.co.uk/league-tables/rankings?v=wide&y=2018)
-    + [2017 Student-Staff Ratios, Academic Services Spend, Good Honours, Facility Spend](https://www.thecompleteuniversityguide.co.uk/league-tables/rankings?v=wide&y=2017)
-    + [2017 Degree Classification](https://www.hesa.ac.uk/data-and-analysis/students/table-16.csv)
-    + [2017 Subject studied](https://www.hesa.ac.uk/data-and-analysis/students/table-19#note)
-    + [2017 Region from](https://www.hesa.ac.uk/data-and-analysis/students/table-1.csv)
-    + [2017 Postgraduate/Undergraduate figures](https://www.hesa.ac.uk/data-and-analysis/students/table-1.csv)
-    + [2017 Sex](https://www.hesa.ac.uk/data-and-analysis/students/table-1.csv)
-    + [2017 Size of full-time population](https://www.hesa.ac.uk/data-and-analysis/students/table-1.csv)
-    + [2017 Under-represented group size](https://www.hesa.ac.uk/data-and-analysis/ukpis/widening-participation/table-t1)
-
-(@) We will investigate the use of these data sources as potential *predictors* for the graduate prospects of university students.
-
-    + Aligning with the [GDS Ethics Framework](https://www.gov.uk/government/publications/data-science-ethical-framework), we will include *sex* in our variables to measure correlations with other predictors in the model, and if there is a high correlation, we will remove those predictors from our model. This is because *sex* is a protected characteristic, and therefore we should refrain from including it nor any potential proxies for it into our model. The risk of including it in our model is that if the outputs are used for decision-making, then one member of the sex may be unfairly disadvantaged. 
-
-### Data: Cleaning 
-```{r (HIDE) Data Preparation, echo = FALSE, include = FALSE}
-source('1.1 - dataLoad.R')
-source('1.2 - dataWrangle.R')
-source('1.3 - dataConsolidation.R')
-```
-(@) Whilst our HESA SFR data has a unique identifier field, *UKPRN*, that we can use to join disparate HESA SFR data together, our Complete University's Guide web-scraped HTML table does not have such a similar unique identifer field. Instead, it's unique identifer field is  *Name*, which is the universtiy's name and is of string data type.
-
-(@) Our HESA SFR data also has a similar field, *HE provider*, which allows us to join the HESA SFR with the Complete University's Guide data together. However, given that these fields are of string data type, then we will need to do some data cleaning first as there is a lot of noise in string/text data. The steps we will take to cleaning text data are:
-
-  + Convert text to lower case
-  + Remove numbers and punctuation
-  + Remove English stopwords *e.g. "the", "is", "of"*
-  + Remove white spaces
-  + Stem text *e.g. remove the "ed" from "changed"*
-
-(@) Once we have cleaned our string columns so they can be matched more accurately, we will then need to apply **fuzzy-matching** to join the HESA SFR data to our Complete University's Guide data. This is because the two sources may call the same university different names. 
-  + *Example: HESA SFR has "The University of Cambridge" whilst the same university is just "Cambridge" in the Complete University's Guide data.*
-  
-(@) Possible fuzzy-matching techniques/algorithms are:
-
-  + **Jaro-distance** | 
-  + **Jaro-Winkler distance** |
-  + **Jaccard distance** |
-  + **Cosine distance** |
-  + **Longest common substring** |
-  
-(@) The particular fuzzy-matching used will be **Longest Common Subsequence**. The reasons for choosing this are outlined below:
-
-```{r (SHOW) LCS Pros and Cons, echo = FALSE, results = "asis"}
-# Table output here looks good in any format
-table <- "
-| Works well for       | Struggles with     |
-|----------------------|--------------------|
-| + Missing words      | - Ordering         | 
-| + Typos              | - Generic wording  | 
-"
-cat(table)
-```
-
-
-(@) In the code below, we demonstrate how to apply text cleaning and fuzzy-matching. Note however that the code is not representative of the code actually used to clean our dataframes. For the actual code, the reader should refer to the underlying R scripts which underpin this report.
-
-```{r (SHOW) Data Preparation, eval = FALSE, echo = TRUE}
-# Clean text data
-x <- Corpus(VectorSource(x = `name`)) %>% 
-        tm_map(content_transformer(tolower)) %>% 
-        tm_map(removeNumbers) %>% 
-        tm_map(removeWords, stopwords("english")) %>% 
-        tm_map(removePunctuation) %>% 
-        tm_map(stripWhitespace) %>% 
-        tm_map(stemDocument) %>% 
-        # Remove additional stopwords of "The University of" to get 
-        # HESA SFR uni names in line with Complete University's Guide
-        tm_map(removeWords, c("The University of"))
-# Convert Corpus to dataframe
-x <- data.frame(Name = sapply(X = x, FUN = as.character), stringsAsFactors = FALSE)
-
-# Fuzzy-matching
-# Create grid of names to match - get all permutations
-temp <- expand.grid(data_hesa$Name, data_CUG$Name) %>% 
-          rename(`hesa_name` = `Var1`, `CUG_name` = `Var2`) %>% 
-          arrange(`hesa_name`)
-# Use Longest Common Subsequence (LCS) algorithm
-temp$dist_lcs <- stringdist(temp$hesa_name, temp$CUG_name, method = "lcs")
-# Rank the LCS distances  smaller the better
-temp <- temp %>%
-          transform(rank_dist_lcs = ave(`dist_lcs`, `hesa_name`,
-                                        FUN = function(x) rank(x, ties.method = "first"))) %>% 
-          # Take only the best rank
-          filter(rank_dist_lcs == 1) %>% 
-          # From visual inspection of matches, any fields with dist_lcs > 8 seem to be wrong,
-          # with exception of LSE
-          filter(dist_lcs <= 8 | `CUG_name` == "london school econom")
-
-# temp dataframe thus acts as lookup table joining
-# data_hesa to data_CUG
-data_master <- temp[, c("hesa_name", "CUG_name")] %>% 
-                left_join(y = data_hesa, by = c("hesa_name" = "Name")) %>% 
-                left_join(y = data_CUG, by = c("CUG_name" = "Name"))
-```
-
-(@) We have now cleaned and joined our separate datasets together. The complete dataframe looks as follows:
-
-```{r (SHOW) Data Prepared, include = TRUE, echo = TRUE}
-glimpse(data_master)
-```
-
 ***
 
-# Section 2: Data Exploration
-```{r (HIDE) Data Exploration script, include = FALSE, echo = FALSE}
-source('2.1 - dataExploration.R')
-```
-## Missing Values
-(@) To obtain an idea of how many missing/NA values we have, we plot for each variable in our cleaned and joined dataset, which observations/row index has an NA value, coloured grey. In the plot below, we see that we have `r toString(txt_missingData[1])` missing data *(`r toString(round(x = temp_propNA, digits = 2))`)* so we `r toString(txt_missingData[2])` need to consider data imputation methods like **bootstrap aggregation** (*bagging*).
-
-```{r (SHOW) Missing values plot, include = TRUE, echo = TRUE}
-func_plotNAs(data_master)
-```
-
-## Dependent Variable: Graduate Prospects  
-
-(@) In the plot below, we have the distribution of *Graduate Prospects 2018* scores. We see that it follows a general normal distribution. Given this, we can see that there are values at both tails away from the distribution, which may be candidate outlier observations which should be iinvestigated further to see if they are actually outlier points, and henceforth should be removed from our dataset. This is because the presence of outliers can adversely impact our **linear regression**.
-
-```{r (SHOW) Graduate Prospects distribution, include = TRUE, echo = TRUE}
-ggplot(data = data_master, mapping = aes(`Graduate Prospects 2018`)) +
-  geom_histogram(fill = "#E69F00", colour = "#56B4E9", alpha = 0.4) +
-                 labs(title = "Graduate Prospects 2018 Distribution", 
-                      x = "Graduate Prospects 2018", y = "Count") +
-  theme_minimal() +
-  theme(plot.title = element_text(face = "bold", hjust = 0.5))
-```
-
-(@) In the output below, we have the correlations of each of our independent variables against our dependent variable, *"Graduate Prospects 2018"*. From this, we see that each of our independent variables selected are at least somewhat correlated to *"Graduate Prospects 2018"*, so they can be included in the regression.
-
-```{r (SHOW) Graduate Prospects correlations, include = TRUE, echo = TRUE}
-mat_corrDV
-```
-
-## Independent Variables
-(@) From the plot below, we have the correlation of each independent variable against other independent variables. It is important to ensure that our independent variables are not highly correlated with sex in accordance to the GDS Ethics framework. Moreover, we should also remove highly-correlated independent variables because they will negatively affect our regression.
-
-(@) From the correlation matrix plot below, we see the following:
-  
-  + Male-Female ratio is not strongly correlated with any other variables.
-  + State Private ratio is fairly correlated with PG FT sutdent count and Pass Fail ratio.
-  + Research Quality is highly correlated with PG FT student count.
-  + Stu-Staff Ratio is fairly correlated with State Private ratio.
-  
-  Given this, we will drop the *State Private ratio* and *PG FT student count* variables from our regressions. This is because keeping correlated independent variables will make our regression results inaccurate.
-
-```{r (SHOW) Correlation heatmap, include = TRUE, echo = TRUE}
-# Correlation heatmap
-ggplot(data = mat_corrIV, mapping = aes(x = `Var2`, y = `Var1`, fill = value)) +
-  geom_tile(colour = "white") +
-  scale_fill_gradient2(low = "blue", high = "red", mid = "white",
-                       midpoint = 0, limit = c(-1, 1), space = "Lab", name = "Pearson\nCorrelation\nCoefficient") +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
-  labs(title = "IV Correlation Heatmap", x = "Independent Variables", y = "Independent Variables")
-```
-
-***
 # Bayesian Stastistics
 ## What is it?
 (@) **Bayesian statistics/inference** is a fundamentally different way to view and approach statistical problems/questions. At its simplest, it boils down to **Bayes' Theorem** within probability theory:
@@ -338,6 +182,168 @@ $$RMSE = \sqrt{\frac{\sum_{i=1}^n\left( \hat{y_i}-y_i \right)^2}{n}}$$
 
 (@) We will use **RMSE** to evaluate the performance of our **frequentist** and **Bayesian multi-linear regression** models to compare which model gives us more accurate predictions.
 
+# Data
+## Sources
+(@) The data used in this project comes from the Higher Educations Standards Agency's (HESA) Statistical First Release (SFR247) and the Complete University Guide's university rankings table.
+
+(@) In particular, the following datasets are used:
+
+    + [2018 Graduate Prospects](https://www.thecompleteuniversityguide.co.uk/league-tables/rankings?v=wide&y=2018)
+    + [2017 Student-Staff Ratios, Academic Services Spend, Good Honours, Facility Spend](https://www.thecompleteuniversityguide.co.uk/league-tables/rankings?v=wide&y=2017)
+    + [2017 Degree Classification](https://www.hesa.ac.uk/data-and-analysis/students/table-16.csv)
+    + [2017 Subject studied](https://www.hesa.ac.uk/data-and-analysis/students/table-19#note)
+    + [2017 Region from](https://www.hesa.ac.uk/data-and-analysis/students/table-1.csv)
+    + [2017 Postgraduate/Undergraduate figures](https://www.hesa.ac.uk/data-and-analysis/students/table-1.csv)
+    + [2017 Sex](https://www.hesa.ac.uk/data-and-analysis/students/table-1.csv)
+    + [2017 Size of full-time population](https://www.hesa.ac.uk/data-and-analysis/students/table-1.csv)
+    + [2017 Under-represented group size](https://www.hesa.ac.uk/data-and-analysis/ukpis/widening-participation/table-t1)
+
+(@) We will investigate the use of these data sources as potential *predictors* for the graduate prospects of university students.
+
+    + Aligning with the [GDS Ethics Framework](https://www.gov.uk/government/publications/data-science-ethical-framework), we will include *sex* in our variables to measure correlations with other predictors in the model, and if there is a high correlation, we will remove those predictors from our model. This is because *sex* is a protected characteristic, and therefore we should refrain from including it nor any potential proxies for it into our model. The risk of including it in our model is that if the outputs are used for decision-making, then one member of the sex may be unfairly disadvantaged. 
+
+## Cleaning 
+```{r (HIDE) Data Preparation, echo = FALSE, include = FALSE}
+source('1.1 - dataLoad.R')
+source('1.2 - dataWrangle.R')
+source('1.3 - dataConsolidation.R')
+```
+(@) Whilst our HESA SFR data has a unique identifier field, *UKPRN*, that we can use to join disparate HESA SFR data together, our Complete University's Guide web-scraped HTML table does not have such a similar unique identifer field. Instead, it's unique identifer field is  *Name*, which is the universtiy's name and is of string data type.
+
+(@) Our HESA SFR data also has a similar field, *HE provider*, which allows us to join the HESA SFR with the Complete University's Guide data together. However, given that these fields are of string data type, then we will need to do some data cleaning first as there is a lot of noise in string/text data. The steps we will take to cleaning text data are:
+
+  + Convert text to lower case
+  + Remove numbers and punctuation
+  + Remove English stopwords *e.g. "the", "is", "of"*
+  + Remove white spaces
+  + Stem text *e.g. remove the "ed" from "changed"*
+
+(@) Once we have cleaned our string columns so they can be matched more accurately, we will then need to apply **fuzzy-matching** to join the HESA SFR data to our Complete University's Guide data. This is because the two sources may call the same university different names. 
+  + *Example: HESA SFR has "The University of Cambridge" whilst the same university is just "Cambridge" in the Complete University's Guide data.*
+  
+(@) Possible fuzzy-matching techniques/algorithms are:
+
+  + **Jaro-distance** | 
+  + **Jaro-Winkler distance** |
+  + **Jaccard distance** |
+  + **Cosine distance** |
+  + **Longest common substring** |
+  
+(@) The particular fuzzy-matching used will be **Longest Common Subsequence**. The reasons for choosing this are outlined below:
+
+```{r (SHOW) LCS Pros and Cons, echo = FALSE, results = "asis"}
+# Table output here looks good in any format
+table <- "
+| Works well for       | Struggles with     |
+|----------------------|--------------------|
+| + Missing words      | - Ordering         | 
+| + Typos              | - Generic wording  | 
+"
+cat(table)
+```
+
+
+(@) In the code below, we demonstrate how to apply text cleaning and fuzzy-matching. Note however that the code is not representative of the code actually used to clean our dataframes. For the actual code, the reader should refer to the underlying R scripts which underpin this report.
+
+```{r (SHOW) Data Preparation, eval = FALSE, echo = TRUE}
+# Clean text data
+x <- Corpus(VectorSource(x = `name`)) %>% 
+        tm_map(content_transformer(tolower)) %>% 
+        tm_map(removeNumbers) %>% 
+        tm_map(removeWords, stopwords("english")) %>% 
+        tm_map(removePunctuation) %>% 
+        tm_map(stripWhitespace) %>% 
+        tm_map(stemDocument) %>% 
+        # Remove additional stopwords of "The University of" to get 
+        # HESA SFR uni names in line with Complete University's Guide
+        tm_map(removeWords, c("The University of"))
+# Convert Corpus to dataframe
+x <- data.frame(Name = sapply(X = x, FUN = as.character), stringsAsFactors = FALSE)
+
+# Fuzzy-matching
+# Create grid of names to match - get all permutations
+temp <- expand.grid(data_hesa$Name, data_CUG$Name) %>% 
+          rename(`hesa_name` = `Var1`, `CUG_name` = `Var2`) %>% 
+          arrange(`hesa_name`)
+# Use Longest Common Subsequence (LCS) algorithm
+temp$dist_lcs <- stringdist(temp$hesa_name, temp$CUG_name, method = "lcs")
+# Rank the LCS distances  smaller the better
+temp <- temp %>%
+          transform(rank_dist_lcs = ave(`dist_lcs`, `hesa_name`,
+                                        FUN = function(x) rank(x, ties.method = "first"))) %>% 
+          # Take only the best rank
+          filter(rank_dist_lcs == 1) %>% 
+          # From visual inspection of matches, any fields with dist_lcs > 8 seem to be wrong,
+          # with exception of LSE
+          filter(dist_lcs <= 8 | `CUG_name` == "london school econom")
+
+# temp dataframe thus acts as lookup table joining
+# data_hesa to data_CUG
+data_master <- temp[, c("hesa_name", "CUG_name")] %>% 
+                left_join(y = data_hesa, by = c("hesa_name" = "Name")) %>% 
+                left_join(y = data_CUG, by = c("CUG_name" = "Name"))
+```
+
+(@) We have now cleaned and joined our separate datasets together. The complete dataframe looks as follows:
+
+```{r (SHOW) Data Prepared, include = TRUE, echo = TRUE, fig.align = "center"}
+glimpse(data_master)
+```
+
+***
+
+# Section 2: Data Exploration
+```{r (HIDE) Data Exploration script, include = FALSE, echo = FALSE}
+source('2.1 - dataExploration.R')
+```
+## Missing Values
+(@) To obtain an idea of how many missing/NA values we have, we plot for each variable in our cleaned and joined dataset, which observations/row index has an NA value, coloured grey. In the plot below, we see that we have `r toString(txt_missingData[1])` missing data *(`r toString(round(x = temp_propNA, digits = 2))`)* so we `r toString(txt_missingData[2])` need to consider data imputation methods like **bootstrap aggregation** (*bagging*).
+
+```{r (SHOW) Missing values plot, include = TRUE, echo = TRUE, fig.align = "center"}
+func_plotNAs(data_master)
+```
+
+## Dependent Variable: Graduate Prospects  
+
+(@) In the plot below, we have the distribution of *Graduate Prospects 2018* scores. We see that it follows a general normal distribution. Given this, we can see that there are values at both tails away from the distribution, which may be candidate outlier observations which should be iinvestigated further to see if they are actually outlier points, and henceforth should be removed from our dataset. This is because the presence of outliers can adversely impact our **linear regression**.
+
+```{r (SHOW) Graduate Prospects distribution, include = TRUE, echo = TRUE, fig.align = "center"}
+ggplot(data = data_master, mapping = aes(`Graduate Prospects 2018`)) +
+  geom_histogram(fill = "#E69F00", colour = "#56B4E9", alpha = 0.4) +
+  labs(title = "Graduate Prospects 2018 Distribution", x = "Graduate Prospects 2018", y = "Count") +
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))
+```
+
+(@) In the output below, we have the correlations of each of our independent variables against our dependent variable, *"Graduate Prospects 2018"*. From this, we see that each of our independent variables selected are at least somewhat correlated to *"Graduate Prospects 2018"*, so they can be included in the regression.
+
+```{r (SHOW) Graduate Prospects correlations, include = TRUE, echo = TRUE}
+x = mat_corrDV
+```
+
+## Independent Variables
+(@) From the plot below, we have the correlation of each independent variable against other independent variables. It is important to ensure that our independent variables are not highly correlated with sex in accordance to the GDS Ethics framework. Moreover, we should also remove highly-correlated independent variables because they will negatively affect our regression.
+
+(@) From the correlation matrix plot below, we see the following:
+  
+  + Male-Female ratio is not strongly correlated with any other variables.
+  + State Private ratio is fairly correlated with PG FT sutdent count and Pass Fail ratio.
+  + Research Quality is highly correlated with PG FT student count.
+  + Stu-Staff Ratio is fairly correlated with State Private ratio.
+  
+  Given this, we will drop the *State Private ratio* and *PG FT student count* variables from our regressions. This is because keeping correlated independent variables will make our regression results inaccurate.
+
+```{r (SHOW) Correlation heatmap, include = TRUE, echo = TRUE, fig.align = "center"}
+# Correlation heatmap
+ggplot(data = mat_corrIV, mapping = aes(x = `Var2`, y = `Var1`, fill = value)) +
+  geom_tile(colour = "white") +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white",
+                       midpoint = 0, limit = c(-1, 1), space = "Lab", name = "Pearson\nCorrelation\nCoefficient") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  labs(title = "IV Correlation Heatmap", x = "Independent Variables", y = "Independent Variables")
+```
+
 ***
 
 # Section 3: Multi-Linear Regression
@@ -405,7 +411,7 @@ model_regFreq <- train(form = `Graduate Prospects 2018` ~ .,
   + **Extreme Points** | In the bottom-right panel, we have the *residual vs leverage* plot. If we find all our observations lying within the red-dotted Cook's distance lines, then this is a good sign that we do not have any extreme points that greatly influence the regression line. In this instance, all our observations are within the inner Cook's distance dotted lines, so we do not have any extreme points.
   
 (@) Therefore our regression model meets the regression assumptions and our model outputs are be valid.
-```{r (SHOW) Regression diagnostics, echo = TRUE, eval = TRUE}
+```{r (SHOW) Regression diagnostics, echo = TRUE, eval = TRUE, fig.align = "center"}
 par(mfrow = c(2, 2))
 plot(model_regFreq$finalModel)
 ```
@@ -456,7 +462,7 @@ source("3.2 - analysisBayesian.R")
 
 ### Formulating Priors
 (@) In the two plots  below, we have the density and cumulative density plots of *Graduate Prospects 2017*. From this, we see that our distribution appears to follow a normal distribution.
-```{r (SHOW) Density and CDF plots, echo = TRUE, eval = TRUE}
+```{r (SHOW) Density and CDF plots, echo = TRUE, eval = TRUE, fig.align = "center"}
 # Graduate Prospects 2017 distribution
 plotdist(data = temp, histo = TRUE, demp = TRUE)
 ```
@@ -470,14 +476,14 @@ plotdist(data = temp, histo = TRUE, demp = TRUE)
   
   + Asterisk | The asterisk represents the normal distribution, so by our blue dot, which represents our dependent variable, being close to the asterisk object, this means that our dependent variable is close to being normally distributed.
   
-  $$ N(\mu,\: \sigma^2)\: where\: \mu\: \in\: \!R\: and\: \sigma^2\: >\: 0 $$
+  $$ N(\mu,\: \sigma^2)\: where\: \mu\: \in\: \rm I\!R\: and\: \sigma^2\: >\: 0 $$
   
   + Grey region | The grey region represents the beta distribution, so by our blue dot, which represents our dependent variable, being within this grey region, this means there are $\alpha$ and $\beta$ values such that our dependent variable is close to being beta-distributed.
   
   $$ B(\alpha,\: \beta)\: where\: \alpha,\: \beta\: >\: 0 $$
   
 (@) Our dependent variable, *Graduate Prospects 2017*, cannot be beta-distributed however because *Graduate Prospects 2017* can take values greater than one. For a beta-distribution, the set of possible values must lie in the interval [0,1]. Therefore, we will fit the uniform and normal distribution to our *Graduate Prospects* data.
-```{r (SHOW) Formulating priors, echo = TRUE, eval = TRUE}
+```{r (SHOW) Formulating priors, echo = TRUE, eval = TRUE, fig.align = "center"}
 # Graduate Prospects 2017 distribution
 descdist(data = temp, discrete = FALSE)
 ```
@@ -497,13 +503,13 @@ fitdist(data = temp, distr = "norm", method = "mme",
   + The *probability-probability (P-P) plot* in the bottom-right panel shows that both the uniform and normal distributions provide a good description of the centre of our dependent variable's empirical distribution.[^8]
   
 [^8]: One typically complements the use of the **goodness-of-fit plots** by computing recommended **goodness-of-fit statistics** such as the **Kolmogorov-Smirnov stastistic**, **Cramer-von Mises statistic**, or the **Anderson-Darling statistic**. They then use these statistics to test against the null hypothesis that the empirical (dependent variable) distribution fits an estimated (proposed) distribution. However, since these recommended **goodness-of-fit statistics** are available only for **maximum likelihood estimations**, then we cannot take this complimentary approach.
-```{r (SHOW) Goodness-of-fit plots, echo = TRUE, eval = TRUE}
+```{r (SHOW) Goodness-of-fit plots, echo = TRUE, eval = TRUE, fig.align = "center"}
 par(mfrow = c(2,2)) 
 func_plotGoF(dist = rpt_dist, titles = name_dist)
 ```
 
 (@) For our purposes, we will fit the normal distribution onto our dependent variable, *Graduate Prospects*, for the **Bayesian multi-linear regression** model that we will build. Whilst the uniform distribution has shown itself to be equally appropriate, we choose the normal distribution arbitrarily for the sake of comparing against the **frequentist multi-linear regression** model.
-$$ Graduate\: Prospects\: \~\: N(\mu,\: \sigma^2) $$ 
+$$ Graduate\: Prospects\: \sim\: N(\mu,\: \sigma^2) $$ 
   where $\mu$ = `r toString(round(x = rpt_dist[[2]]$estimate[1], digits = 2))` and $\sigma^2$ = `r toString(round(x = rpt_dist[[2]]$estimate[2], digits = 2))`.
 
 ### Building the Bayesian model
@@ -536,7 +542,7 @@ model_regBayes <- run.jags(method = "parallel", model = "bayesModel.bug", monito
 (@) More concretely, we want to see no clear paatern nor trend in the plot, meaning no obvious movements to the top nor bottom of the plots. In this way, our **MCMC** method is leading our $\beta$ regression parameters to consider all possible values they can take, with approximately the same probability that they will land on each possible value.
 
 (@) Checking for *representativeness*, we see that our four parallel chains run generally overlap each other for each $\beta$ parameter, so our chains are fulfil this condition.
-```{r (SHOW) Traceplots, echo = TRUE, eval = TRUE}
+```{r (SHOW) Traceplots, echo = TRUE, eval = TRUE, fig.align = "center"}
 par(mfrow = c(3,3))
 traceplot(model_regBayes)
 ```
@@ -546,7 +552,7 @@ traceplot(model_regBayes)
 
 (@) What this shows is that for our $\beta0$, $\beta_5$, and $\beta_6$ parameters, the *correlation coefficient* between the first and subsequent chains/lags do not fall by much after successive lags, and therefore our chains for them are highly auto-correlated – they change gradually step-by-step. Henceforth successive chains for these parameters do not provide independent information about our $\beta0$, $\beta_5$, and $\beta_6$ distributions. For our other parameters, we have less autocorrelation. Thereforem we do not fully satisfy this condition.
 
-```{r (SHOW) Accuracy, echo = TRUE, eval = TRUE}
+```{r (SHOW) Accuracy, echo = TRUE, eval = TRUE, fig.align = "center"}
 # ACF Plot for first chain only
 autocorr.plot(model_regBayes[[1]])
 ```
@@ -572,6 +578,7 @@ summary(model_regBayes)$statistics
 (@) In the output below, we have the 95% **credible interval** for each of our independent variables. These values can be interpreted as follows: 
 
 > If we were to take one sample, there is a 95% probability that our parameter will lie within the region bounded by 2.5% and 97.5%.
+
 ```{r (SHOW) C.I, echo = TRUE, eval = TRUE}
 # Take C.I associated with first chain only
 HPDinterval(obj = model_regBayes, prob = 0.95)[[1]]
@@ -617,7 +624,9 @@ model_regBayesci
 
 (@) Flesh out **GitHub** README.md file.
 
-(@) Write code to write *.csv* copy of web-scraped HTML table.
+(@) Experiment with transferring this markdown report into the R package, **bookdown**.
+
+(@) Try to get **pander** and **plotly** to work for pretty outputting of dataframes and plots in markdown.
 
 ***
 
@@ -642,7 +651,7 @@ model_regBayesci
     - **Version control** | Git is used to manage different versions of this analysis project, enabling dial-back to historical copies before a major change was made, and to enable collaborative working.
     - **Database/Web Extracts** | When data for analysis is taken from a live feed to an underlying database such as SQL, a copy of the data at that instance is made and saved within the *RProject* so that the record of the data when the analysis was performed is collected and used to reproduce results.[^11]
    
-[^11]: We do not have a live link to an underlying database in this project, but this practice is included here for reference.
+[^11]: We do not have a live link to an underlying database in this project, but we have web-scraped HTML tables.
 
 ## Glossary of Terms
 
@@ -674,14 +683,12 @@ model_regBayesci
   + **SnowballC** | Stems text
   + **stringdist** | Fuzzymatching text data.
   + **rvest** | Scraping information from the web.
-  + **pander** | Pretty outputting of dataframes within *rmarkdown*.
   + **rmarkdown** | Generate HTML report within RStudio session.
   + **caret** | General-purpose package to perform machine-learning, including **multi-linear regression** and **k-fold cross-validation**.
   + **gvlma** | Tests linear model assumptions.
   + **fitdistrplus** | Powerful distribution-plotting of data, enabling the selection of the best-fitting common distribution to your data.
   + **runjags** | Facilitates Bayesian analysis as well as doing so efficiently via parallel processing.
   + **coda** | Performs Markov-Chain Monte Carlo diagnostic checks for Bayesian analysis.
-  + **mcmcse** | Compute **effective sample size (ESS)**.
 
 ## Credits
 (@) The following people have influenced this report:
@@ -693,6 +700,7 @@ model_regBayesci
   + **Salman Kasim (DfE)** | Web-scraping
   + **Chris Thom (DfE)** | apply functions > loops
   + **Michelle Clements (BEIS)** | Text data cleaning
+  + **Robert Jones (DfE)** | Clear naming of objects
 
 ***
 

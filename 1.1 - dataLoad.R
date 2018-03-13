@@ -26,3 +26,8 @@ url = "https://www.thecompleteuniversityguide.co.uk/league-tables/rankings?v=wid
 data_list[[5]] <- func_readHTMLTable(url = url)
 url = "https://www.thecompleteuniversityguide.co.uk/league-tables/rankings?v=wide&y=2017"
 data_list[[6]] <- func_readHTMLTable(url = url)
+
+# Write .csv of HTML tables
+date <- Sys.Date()
+write.csv(x = data_list[[5]], file = paste0("Data/Archive/graduate_prospects_2018 ", date, ".csv"))
+write.csv(x = data_list[[6]], file = paste0("Data/Archive/graduate_prospects_2017 ", date, ".csv"))
