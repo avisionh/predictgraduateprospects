@@ -1,13 +1,13 @@
 model{
 	for(i in 1:length(y)){   ## regression model for y
-	      mu[i] <- beta0 + inprod(beta[1:6], x[i,1:6])
+	      mu[i] <- beta0 + inprod(beta[1:5], x[i,1:5])
 	      y[i] ~ dnorm(mu[i],tau)
 	}
 	
 	## Priors
 	## From rpt_dist[[2]]$estimate
 	beta0 ~ dnorm(0.4819571, 0.2131642)   ## intercept
-	for(j in 1:6) {
+	for(j in 1:5) {
 	  beta[j] ~ dnorm(0.4819571, 0.2131642)
 	}
 

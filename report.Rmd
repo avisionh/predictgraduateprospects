@@ -10,12 +10,18 @@ output:
     code_folding: hide
     fig_caption: true
     toc: true
+    toc_fold: true
 ---
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 # Load in the necessary packages
-library(tidyverse)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(reshape2)
+library(readr)
+library(magrittr)
 library(tm)
 library(SnowballC)
 library(stringdist)
@@ -33,6 +39,8 @@ source('0 - functions.R')
 options(scipen = 999)
 ```
 # Author's Note
+(@) DISCLAIMER: The author is relatively new to **Bayesian statistics**, so would appreciate suggestions and tips.
+
 (@) Key lesson learnt here is that in most cases, you should do a piece of analysis *"well enough"*, so that it does not necessarily need to be perfect. However, when attempting to communicate a new concept in a way that people, especially analysts interested in the details and process, understand in a clear, concise and succint manner, as well as encouraging them to try out the concept, then extra time, effort and thought must go to doing more than *"well enough"*.
 
 (@) In this regard, your humble author has tried their best to ensure that the language is crystal-clear, the code is as readable as possible, the naming conventions are immediately obvious as to how wha they represent, and it is all consistent.
@@ -678,7 +686,7 @@ model_regBayesci
 
 (@) The packages used in this analysis are:
   + **packrat** | Locking-down versions of packages.
-  + **tidyverse** | Data import, manipulation, and plotting.
+  + **tidyverse** | Data import, manipulation, and plotting.[^12]
   + **tm** | Cleaning text data.
   + **SnowballC** | Stems text
   + **stringdist** | Fuzzymatching text data.
@@ -689,6 +697,8 @@ model_regBayesci
   + **fitdistrplus** | Powerful distribution-plotting of data, enabling the selection of the best-fitting common distribution to your data.
   + **runjags** | Facilitates Bayesian analysis as well as doing so efficiently via parallel processing.
   + **coda** | Performs Markov-Chain Monte Carlo diagnostic checks for Bayesian analysis.
+
+[^12]: This has now been removed as not all the packages in **tidyverse** are required, and when downloading these packages on a different workspace, we want to minimise the time it takes to download the required packages for this project. It has instead been replaced by the **tidyr**, **dplyr**, **ggplot2**, **readr**, **reshape2**, and **magrittr** packages.
 
 ## Credits
 (@) The following people have influenced this report:
