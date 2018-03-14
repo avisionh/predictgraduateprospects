@@ -10,7 +10,7 @@ output:
     code_folding: hide
     fig_caption: true
     toc: true
-    toc_fold: true
+    toc_float: true
 ---
 
 ```{r setup, include = FALSE}
@@ -40,6 +40,8 @@ options(scipen = 999)
 ```
 # Author's Note
 (@) DISCLAIMER: The author is relatively new to **Bayesian statistics**, so would appreciate suggestions and tips.
+
+(@) To pull in the packages used for this project, run `packrat::snapshot` in your console to install the relevant packages.
 
 (@) Key lesson learnt here is that in most cases, you should do a piece of analysis *"well enough"*, so that it does not necessarily need to be perfect. However, when attempting to communicate a new concept in a way that people, especially analysts interested in the details and process, understand in a clear, concise and succint manner, as well as encouraging them to try out the concept, then extra time, effort and thought must go to doing more than *"well enough"*.
 
