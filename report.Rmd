@@ -1,6 +1,6 @@
 ---
-title: "Predicting Degree Classification"
-author: "Avision Ho"
+title: "Predicting Graduate Prospects"
+author: "Avision Ho (a_vision@hotmail.co.uk)"
 date: "17 February 2018"
 output: 
   html_document:
@@ -47,7 +47,7 @@ options(scipen = 999)
 
 (@) In this regard, your humble author has tried their best to ensure that the language is crystal-clear, the code is as readable as possible, the naming conventions are immediately obvious as to how wha they represent, and it is all consistent.
 
-(@) Nevertheless, your humble author would be most grateful to receive feedback, questions, and suggestions on how this analysis and report can be improved further. Feel free to get in touch either via the [GitHub page](https://github.com/avisionh/Predict-Graduate-Prospects), or via [email](a_vision@hotmail.co.uk). `r toString(emo::ji("sorry"))`
+(@) Nevertheless, your humble author would be most grateful to receive feedback, questions, and suggestions on how this analysis and report can be improved further. Feel free to get in touch either via the [GitHub page](https://github.com/avisionh/Predict-Graduate-Prospects), or via email. `r toString(emo::ji("sorry"))`
 
 (@) Please do let this author know if this analysis has encouraged you to try **Bayesian statistics** yourself. Your author would be most delighted to see it being implemented more widely.`r toString(emo::ji("smile"))`
 
@@ -94,8 +94,9 @@ options(scipen = 999)
 
 ***
 
-# Bayesian Stastistics
-## What is it?
+# Section 2: Core Concepts
+## Bayesian Stastistics
+### What is it?
 (@) **Bayesian statistics/inference** is a fundamentally different way to view and approach statistical problems/questions. At its simplest, it boils down to **Bayes' Theorem** within probability theory:
 $$ (1)\quad P(A\mid B\,) = {\frac {P(B\mid A)\ P(A\,)}{P(B\,)}} $$
 $$ where\:A\:and\:B\:are\:events\:and\:P(B)\neq 0 $$
@@ -104,7 +105,7 @@ $$ (2)\quad Beliefs\: after\: observation\: =\: Beliefs\: before\: observation\:
 (@) For the purpose of terms used later in this paper, we will rephrase (2) as (3) below:
 $$ (3)\quad Posterior\: beliefs\: \propto\: Prior\: \times\: Likelihood $$
 
-## Frequentist versus Bayesian Statistics
+### Frequentist versus Bayesian Statistics
 (@) **Frequentist/classical statistics**, which is widely learnt in education and practiced in industry, is distinct from **Bayesian statistics** on a philosophical level. The two schools of thought view the concept of probability in fundamentally different ways. [^2]
 
 [^2]: One of the main reasons why **frequentist statistics** is the dominant mode of statistical thinking is due to computational power. Before recent advances, it was very difficult to efficiently perform **Bayesian statistics**. Another key reason is centred on a historical, epic, and longstanding [war](http://lesswrong.com/lw/774/a_history_of_bayes_theorem/) between **Frequentist** statisticians (*Ronald Fisher, Jerzy Neyman and Egon Pearson*) and **Bayesian** statisticians (*Thomas Bayes, Pierre-Simon Laplace*), which was won by the former group in the early 20th Century. `r toString(emo::ji("explode"))`
@@ -147,7 +148,7 @@ cat(table)
 
 [^5]: Indeed, the fact that **Bayesian** inference is more intuitive was the subject of discussion in Daniel Kahnemann's best-seller, *Thinking, Fast and Slow*.
 
-## How it works (technical discussion)
+### How it works *(technical discussion)*
 (@) The four general steps followed for the **Bayesian process** are:
   i. Specify a *probability distribution* for each parameter in the model. 
   ii. Combine these distributions into the *joint posterior distribution*.
@@ -166,8 +167,8 @@ cat(table)
 
 (@) If all of this technical explanation makes you feel `r toString(emo::ji("weary"))`, do not fret, we flesh this out with an explicit example. `r toString(emo::ji("thanks"))`
 
-# k-fold Cross validation
-## What is it?
+## k-fold Cross validation
+### What is it?
 (@) **Cross-validation** is a technique to evaluate a model's predictive power by partitioning the data into a **training set** to train the model, and a **test set** to evaluate the model's accuracy in making predictions.
 
 (@) **k-fold cross-validation** is a form of **cross-validation** that takes *k* randomly paritioned sub-samples of your data; *k-1* of these sub-samples then act as the **training set** to train your model, with the other sub-sample being used as your **test set** to evaluate your models performance. 
@@ -180,7 +181,7 @@ cat(table)
 
 ***
 
-# Root Mean Square Error (RMSE)
+## Root Mean Square Error (RMSE)
 (@) **Root-mean-square error** is a metric for evaluating the performance of your predictive model. The lower value means that your model is more accurate in producing predictions that are closer to the observed values.
 
 (@) It is the differences between predicted values of your model against the values actually observed. Mathematically, this is formulated by the below equation:
@@ -192,7 +193,7 @@ $$RMSE = \sqrt{\frac{\sum_{i=1}^n\left( \hat{y_i}-y_i \right)^2}{n}}$$
 
 (@) We will use **RMSE** to evaluate the performance of our **frequentist** and **Bayesian multi-linear regression** models to compare which model gives us more accurate predictions.
 
-# Data
+# Section 3: Data
 ## Sources
 (@) The data used in this project comes from the Higher Educations Standards Agency's (HESA) Statistical First Release (SFR247) and the Complete University Guide's university rankings table.
 
@@ -302,7 +303,7 @@ glimpse(data_master)
 
 ***
 
-# Section 2: Data Exploration
+# Section 4: Data Exploration
 ```{r (HIDE) Data Exploration script, include = FALSE, echo = FALSE}
 source('2.1 - dataExploration.R')
 ```
@@ -356,7 +357,7 @@ ggplot(data = mat_corrIV, mapping = aes(x = `Var2`, y = `Var1`, fill = value)) +
 
 ***
 
-# Section 3: Multi-Linear Regression
+# Section 5: Multi-Linear Regression
 ## What is it?
 (@) **Multi-linear regression** is a method to model the relationship a dependent variable, *Graduate Prospects 2018* has with a set of independent variables. The independent variables we will use are:
 
@@ -611,7 +612,7 @@ model_regBayesci
 
 ***
 
-# Next Steps
+# Section 6: Next Steps
 (@) For text data cleaning, would like to investigate the *quanteda* package which is said to be more powerful, faster, and efficient than existing text analysis packages such as *tm*.
 
 (@) We have removed NAs from our datasets so that we can carry out the Bayesian analysis. With more time, we would like to use data imputation methods so that we do not lose data. 
@@ -638,9 +639,11 @@ model_regBayesci
 
 (@) Try to get **pander** and **plotly** to work for pretty outputting of dataframes and plots in markdown.
 
+(@) Implement **continuous integration/deployment** as part of this.
+
 ***
 
-# Appendix
+# Section 7: Appendix
 ## Reproducible Analytical Pipeline (RAP)
 (@) This paper adopts RAP principles to ensure ease of reproducibility of analysis.
 
@@ -695,7 +698,6 @@ model_regBayesci
   + **rvest** | Scraping information from the web.
   + **rmarkdown** | Generate HTML report within RStudio session.
   + **caret** | General-purpose package to perform machine-learning, including **multi-linear regression** and **k-fold cross-validation**.
-  + **gvlma** | Tests linear model assumptions.
   + **fitdistrplus** | Powerful distribution-plotting of data, enabling the selection of the best-fitting common distribution to your data.
   + **runjags** | Facilitates Bayesian analysis as well as doing so efficiently via parallel processing.
   + **coda** | Performs Markov-Chain Monte Carlo diagnostic checks for Bayesian analysis.
@@ -705,7 +707,7 @@ model_regBayesci
 ## Credits
 (@) The following people have influenced this report:
   + **Richard Morey (Cardiff University)** | Bayesian statistics
-  + **Adam Robinson (DfE)** | RProjects, modular coding, packrat
+  + **Adam Robinson (DfE)** | RProjects, modular coding, packrat, continuous integration/deployment
   + **Zachary Waller (DfE)** | Git
   + **Callum Staff (DfE)** | RAP
   + **David Goody (DfE)** | Fuzzy-matching 
@@ -716,7 +718,7 @@ model_regBayesci
 
 ***
 
-# Environment
+# Section 8: Environment
 (@) This analysis was conducted on a laptop with the specifications and packages outlined below.
 ```{r pressure, echo=FALSE}
 sessionInfo()
