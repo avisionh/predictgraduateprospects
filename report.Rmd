@@ -553,7 +553,7 @@ model_regBayes <- run.jags(method = "parallel", model = "bayesModel.bug", monito
 
 (@) More concretely, we want to see no clear paatern nor trend in the plot, meaning no obvious movements to the top nor bottom of the plots. In this way, our **MCMC** method is leading our $\beta$ regression parameters to consider all possible values they can take, with approximately the same probability that they will land on each possible value.
 
-(@) Checking for *representativeness*, we see that our four parallel chains run generally overlap each other for each $\beta$ parameter, so our chains are fulfil this condition.
+(@) Checking for *representativeness*, we see that our four parallel chains run generally overlap each other for each $\beta$ parameter (the four colours of blue, green, red and black can be faintly seen), so our chains fulfil this condition.
 ```{r (SHOW) Traceplots, echo = TRUE, eval = TRUE, fig.align = "center"}
 par(mfrow = c(3,3))
 #traceplot(as.mcmc(x=model_regBayes))
