@@ -30,12 +30,12 @@ temp_hesa <- temp_firstDegree %>%
 # Join Complete University's Guide dataframes together
 temp_CUG <- temp_otherUniTableData %>%
               rename(`Graduate Prospects 2017` = `Graduate Prospects`) %>% 
-              left_join(y = temp_gradProspects, by = "Name") %>% 
+              left_join(y = temp_gradProspects, by = "Institution") %>% 
               rename(`Graduate Prospects 2018` = `Graduate Prospects`)
 
 # Clean text data
 temp_uniName <- func_textClean(temp_hesa$`HE provider`)
-temp_name <- func_textClean(temp_CUG$Name)                  
+temp_name <- func_textClean(temp_CUG$Institution)                  
 
 # Column bind text cleaned columns to joined dataframes.
 # Column bind okay because order of rows was preserved by func_textClean
@@ -43,7 +43,7 @@ data_hesa <- temp_hesa %>%
               cbind(temp_uniName) %>% 
               dplyr::select(c(`UKPRN`, `HE provider`, `Name`, `Country of HE provider`:`State Private ratio`))
 data_CUG <- temp_CUG %>%
-              rename(`University Name` = `Name`) %>% 
+              rename(`University Name` = `Institution`) %>% 
               cbind(temp_name) %>% 
               dplyr::select(`University Name`, `Name`, `Rank`, `Entry Standards`:`Graduate Prospects 2018`)
 
@@ -72,7 +72,7 @@ data_master <- temp[, c("hesa_name", "CUG_name")] %>%
                 # Choose relevant columns
                 dplyr::select(c(`UKPRN`:`State Private ratio`, `Rank`:`Graduate Prospects 2018`)) %>% 
                 # Reorder columns
-                dplyr::select(c(`UKPRN`:`Research Intensity`, `Stu-Staff Ratio`:`Overall Score`,
+                dplyr::select(c(`UKPRN`:`Research Intensity`, `Student-Staff Ratio`:`Overall Score`,
                                 `Graduate Prospects 2017`, `Graduate Prospects 2018`))
 
 # Remove unwanted objects

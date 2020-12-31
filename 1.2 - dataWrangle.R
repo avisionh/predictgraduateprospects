@@ -27,7 +27,7 @@
  # Store 'Graduate Prospects...' column name as col_gradPros
  # then refer to it by name when choosing columns
 name_gradPros <- paste(grep(pattern = "^Graduate", x = names(data_list[[5]]), value = TRUE))
-data_list[[5]] <- data_list[[5]][, c("Institution", name_gradPros)]
+temp_gradProspects <- data_list[[5]][, c("Institution", name_gradPros)]
 
 
 # ---------------------------------
