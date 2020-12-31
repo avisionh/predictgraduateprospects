@@ -27,11 +27,8 @@
  # Store 'Graduate Prospects...' column name as col_gradPros
  # then refer to it by name when choosing columns
 name_gradPros <- paste(grep(pattern = "^Graduate", x = names(data_list[[5]]), value = TRUE))
-data_list[[5]] <- data_list[[5]][, c("University Name", name_gradPros)]
+data_list[[5]] <- data_list[[5]][, c("Institution", name_gradPros)]
 
-# Clean
-temp_gradProspects <- func_cleanHTMLTable(x = data_list[[5]], colNames = c("Name", "Graduate Prospects")) 
-temp_gradProspects$`Graduate Prospects` <- as.double(x = temp_gradProspects$`Graduate Prospects`)
 
 # ---------------------------------
 # University Guide: Other Data 2017
@@ -39,8 +36,7 @@ temp_gradProspects$`Graduate Prospects` <- as.double(x = temp_gradProspects$`Gra
 # DESC: Clean the parsed HTML table, data_list[[6]], to obtain
 #       the following fields:
 #         - Rank
-#         - Rank Change
-#         - Name
+#         - Institution
 #         - Entry Standards
 #         - Student Satisfaction
 #         - Research Quality
@@ -52,15 +48,23 @@ temp_gradProspects$`Graduate Prospects` <- as.double(x = temp_gradProspects$`Gra
 #         - Good Honours
 #         - Degree Completion
 #         - Overall Score
-# Remove unecessary columns
-data_list[[6]] <- data_list[[6]][, 2:15]
 
 # Clean
-name_cols <- c("Rank", "Rank Change", "Name", "Entry Standards", "Student Satisfaction", "Research Quality",
-                  "Research Intensity", "Graduate Prospects", "Stu-Staff Ratio", "Acad Services Speeds",
-                  "Facilities Spend", "Good Honours", "Degree Completion", "Overall Score")
-temp_otherUniTableData <- func_cleanHTMLTable(x = data_list[[6]], colNames = name_cols)
-name_cols <- name_cols[!name_cols %in% c("Rank", "Name")]
+name_cols <- c("Rank", 
+               "Institution", 
+               "Entry Standards", 
+               "Student Satisfaction", 
+               "Research Quality",
+               "Research Intensity", 
+               "Graduate Prospects", 
+               "Student-Staff Ratio", 
+               "Academic Services Spend",
+               "Facilities Spend", 
+               "Good Honours", 
+               "Degree Completion", 
+               "Overall Score")
+temp_otherUniTableData <- data_list[[6]]
+name_cols <- name_cols[!name_cols %in% c("Rank", "Institution")]
 temp_otherUniTableData[,name_cols] <- temp_otherUniTableData[,name_cols] %>% 
                                         sapply(FUN = as.double)
 # -------------------------------------------------
