@@ -16,18 +16,16 @@
 # Create length of list beforehand to speed up code running.
 data_list <- list()
 length(data_list) <- 5
-data_list[[1]] <- read_csv(file = 'Data/he_admin.csv', col_names = TRUE, skip = 12)
-data_list[[2]] <- read_csv(file = 'Data/he_qualifiers.csv', col_names = TRUE, skip = 12)
-data_list[[3]] <- read_csv(file = 'Data/he_subject.csv', col_names = TRUE, skip = 14)
-data_list[[4]] <- read_csv(file = 'Data/he_urp.csv', col_names = TRUE, skip = 12)
+data_list[[1]] <- read_csv(file = 'data/he_admin.csv', col_names = TRUE, skip = 12)
+data_list[[2]] <- read_csv(file = 'data/he_qualifiers.csv', col_names = TRUE, skip = 12)
+data_list[[3]] <- read_csv(file = 'data/he_subject.csv', col_names = TRUE, skip = 14)
+data_list[[4]] <- read_csv(file = 'data/he_urp.csv', col_names = TRUE, skip = 12)
 
-# Web-scrape from Unviersity League Tables website
-url = "https://www.thecompleteuniversityguide.co.uk/league-tables/rankings?v=wide&y=2018"
-data_list[[5]] <- func_readHTMLTable(url = url)
-url = "https://www.thecompleteuniversityguide.co.uk/league-tables/rankings?v=wide&y=2017"
-data_list[[6]] <- func_readHTMLTable(url = url)
-
-# Write .csv of HTML tables
-date <- Sys.Date()
-write.csv(x = data_list[[5]], file = paste0("Data/Archive/graduate_prospects_2018 ", date, ".csv"))
-write.csv(x = data_list[[6]], file = paste0("Data/Archive/graduate_prospects_2017 ", date, ".csv"))
+# Download from: 
+# https://www.thecompleteuniversityguide.co.uk/league-tables/rankings?tabletype=full-table
+data_list[[5]] <- read_csv(file = 'data/archive/graduate_prospects_2018.csv',
+                           col_names = TRUE,
+                           skip = 4)
+data_list[[6]] <- read_csv(file = 'data/archive/graduate_prospects_2017.csv',
+                           col_names = TRUE,
+                           skip = 4)
