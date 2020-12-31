@@ -29,6 +29,7 @@ library(rvest)
 library(rmarkdown)
 library(caret)
 library(fitdistrplus)
+library(rjags)
 library(runjags)
 library(coda)
 
@@ -258,7 +259,7 @@ cat(table)
 
 ```{r (SHOW) Data Preparation, eval = FALSE, echo = TRUE}
 # Clean text data
-x <- Corpus(VectorSource(x = `name`)) %>% 
+x <- Corpus(VectorSource(x = temp_CUG$Institution)) %>% 
         tm_map(content_transformer(tolower)) %>% 
         tm_map(removeNumbers) %>% 
         tm_map(removeWords, stopwords("english")) %>% 

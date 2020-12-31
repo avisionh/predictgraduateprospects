@@ -33,7 +33,7 @@ if (temp_propNA < 0.05) {
 # CORRELATIONS
  # vector of correlations
 name_indVar <- c("PG FT student count", "Male Female ratio", "EU to non-EU ratio", "Pass Fail ratio", 
-                 "STEM non-STEM ratio", "State Private ratio", "Research Quality","Stu-Staff Ratio", 
+                 "STEM non-STEM ratio", "State Private ratio", "Research Quality","Student-Staff Ratio", 
                  "Graduate Prospects 2018")
  # DV to IV correlation
 mat_corrDV <- data_master[, name_indVar] %>% 

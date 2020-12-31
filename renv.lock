@@ -581,6 +581,13 @@
       "Repository": "CRAN",
       "Hash": "bb5996d0bd962d214a11140d77589917"
     },
+    "rjags": {
+      "Package": "rjags",
+      "Version": "4-10",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "e7fc80d447730043303ae76ca5773e3d"
+    },
     "rlang": {
       "Package": "rlang",
       "Version": "0.4.10",
