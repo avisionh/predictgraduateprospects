@@ -556,7 +556,8 @@ model_regBayes <- run.jags(method = "parallel", model = "bayesModel.bug", monito
 (@) Checking for *representativeness*, we see that our four parallel chains run generally overlap each other for each $\beta$ parameter, so our chains are fulfil this condition.
 ```{r (SHOW) Traceplots, echo = TRUE, eval = TRUE, fig.align = "center"}
 par(mfrow = c(3,3))
-traceplot(model_regBayes)
+#traceplot(as.mcmc(x=model_regBayes))
+traceplot(model_regBayes[[1]])
 ```
 
 #### ii. Accuracy and stability
@@ -578,7 +579,7 @@ autocorr.plot(model_regBayes[[1]])
 (@) In the below output, we have the results of our model.
   + Coefficient significance | From the **Bayesian** equivalent of **p-values**, **Naive SE**, we see that all our independent variables are stastically significant at the 5% significance level.
 ```{r (SHOW) Bayesian regression summary, echo = TRUE, eval = TRUE}
-summary(model_regBayes)$statistics
+summary(model_regBayes)
 ```
 
 ### Regression model accuracy
@@ -593,7 +594,8 @@ summary(model_regBayes)$statistics
 
 ```{r (SHOW) C.I, echo = TRUE, eval = TRUE}
 # Take C.I associated with first chain only
-HPDinterval(obj = model_regBayes, prob = 0.95)[[1]]
+#HPDinterval(obj = mcmc.list(as.mcmc(model_regBayes)), prob = 0.95)[[1]]
+HPDinterval(obj = mcmc.list(as.mcmc(model_regBayes[[1]])), prob = 0.95)[[1]]
 ```
 
 ## Comparing Bayesian with Frequentist Outputs
